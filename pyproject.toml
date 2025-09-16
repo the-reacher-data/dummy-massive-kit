@@ -58,7 +58,7 @@ exclude = ["src/tests/fixtures"]
 
 [tool.ruff.lint]
 select = ["E","F","I","UP","B","W","N","ASYNC","PL","RUF"]
-ignore = ["ANN101","ANN102"]
+# Note: ANN101, ANN102 are deprecated and automatically ignored
 
 # --- isort (si prefieres isort separado del formatter) ---
 [tool.isort]
