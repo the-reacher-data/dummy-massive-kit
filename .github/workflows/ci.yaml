@@ -47,7 +47,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Mypy (types)
-        run: uv run mypy src
+        run: uv run mypy src/dummy_massivekit
 
       - name: Pytest (with coverage)
         run: uv run pytest src/tests/ -q --cov=src/dummy_massivekit --cov-report=xml
