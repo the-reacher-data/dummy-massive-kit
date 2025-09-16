@@ -15,12 +15,12 @@
 ---
 
 ## ✨ Features (current focus)
-- **API Framework** (based on FastAPI)  
-  - Declarative controllers, services, repositories, validators, orchestrators.  
-  - Project scaffolding from OpenAPI specs.  
-- **CLI** (`massivekit`)  
-  - `massivekit start-project` → bootstrap new projects.  
-  - `massivekit list` → explore available repositories/validators.  
+- **API Framework** (based on FastAPI)
+  - Declarative controllers, services, repositories, validators, orchestrators.
+  - Project scaffolding from OpenAPI specs.
+- **CLI** (`massivekit`)
+  - `massivekit start-project` → bootstrap new projects.
+  - `massivekit list` → explore available repositories/validators.
 
 ---
 

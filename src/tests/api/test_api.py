@@ -6,6 +6,7 @@ from dummy_massivekit.api.dummy import Dummy
 class TestApi:
     """Test cases for the Dummy API class."""
 
-    def test_sum(self):
+    def test_sum(self) -> None:
         """Test the sum static method with positive integers."""
-        assert Dummy.sum(1, 2) == 3
+        expected_result = 3
+        assert Dummy.sum(1, 2) == expected_result

@@ -3,7 +3,7 @@
 
 repos:
   # === CODE QUALITY & FORMATTING ===
-  
+
   # Ruff - Fast Python linter (replaces flake8, isort, and more)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.5
@@ -31,7 +31,7 @@ repos:
         args: ["--py311-plus"]
 
   # === TYPE CHECKING ===
-  
+
   # mypy - Static type checker
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.1
@@ -42,24 +42,26 @@ repos:
         args: ["--strict", "--ignore-missing-imports"]
 
   # === SECURITY & VULNERABILITIES ===
-  
+
   # Bandit - Security linter for Python
   - repo: https://github.com/pycqa/bandit
     rev: 1.7.9
     hooks:
       - id: bandit
         name: "🔒 Bandit Security Scanner"
-        args: ["-ll", "-r", "src", "--skip", "B101"]
+        args: ["-ll", "--skip", "B101"]
+        files: ^src/.*\.py$
 
   # Safety - Check for known security vulnerabilities
-  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.3.2
-    hooks:
-      - id: python-safety-dependencies-check
-        name: "🛡️ Safety Vulnerability Check"
+  # Commented out: not compatible with uv dependency management
+  # - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+  #   rev: v1.3.2
+  #   hooks:
+  #     - id: python-safety-dependencies-check
+  #       name: "🛡️ Safety Vulnerability Check"
 
   # === GENERAL FILE CHECKS ===
-  
+
   # Pre-commit hooks collection
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
@@ -83,7 +85,7 @@ repos:
         name: "🔑 Detect private keys"
 
   # === SECRETS DETECTION ===
-  
+
   # detect-secrets - Prevent secrets from being committed
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
@@ -94,7 +96,7 @@ repos:
         exclude: package.lock.json
 
   # === CUSTOM CHECKS ===
-  
+
   - repo: local
     hooks:
       # Check TODO/FIXME comments
@@ -121,18 +123,18 @@ repos:
             exit 1
           fi'
         stages: [pre-commit]
-      
+
       # Run tests before push
       - id: run-tests
         name: "🧪 Run tests before push"
-        entry: pytest -v
+        entry: uv run pytest src/tests/ -v
         language: system
         pass_filenames: false
         always_run: true
         stages: [pre-push]
 
   # === COMMIT MESSAGE VALIDATION ===
-  
+
   # Conventional Commits validation
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v3.28.0
