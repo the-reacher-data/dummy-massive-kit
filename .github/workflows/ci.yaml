@@ -1,0 +1,142 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "fix/**"
+      - "hotfix/**"
+      - "chore/**"
+      - "release/**"
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+      - "release/**"
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  # --- Shared setup (Python + uv + deps) ---
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      python-version: "3.11"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        id: python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install deps (dev + all extras)
+        run: uv sync --all-extras 
+
+  # --- Quality checks ---
+  quality:
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ruff (lint)
+        run: uv run ruff check .
+
+      - name: Mypy (types)
+        run: uv run mypy src
+
+      - name: Pytest (with coverage)
+        run: uv run pytest -q --cov=src/massivekit --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: false
+
+      - name: Snyk (dependency security)
+        uses: snyk/actions/python-3.11@master
+        with:
+          command: test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # --- Pre-release to TestPyPI on PRs ---
+  prerelease:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    needs: [quality]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: pip install build twine python-semantic-release tomli tomli-w
+
+      - name: Dry bump (semantic-release)
+        run: semantic-release version --prerelease --no-commit
+
+      - name: Patch prerelease version (unique per PR commit)
+        run: |
+          python scripts/patch_version.py \
+            ${{ github.event.number }} \
+            ${{ github.sha }}
+
+      - name: Build distribution
+        run: python -m build
+
+      - name: Upload to TestPyPI
+        env:
+          PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload \
+            --repository-url https://test.pypi.org/legacy/ \
+            -u __token__ -p "${PYPI_TOKEN}" \
+            dist/*
+
+  # --- Release to PyPI on master ---
+  release:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    needs: [quality]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build + semantic-release + docs deps
+        run: pip install build twine python-semantic-release mkdocs-material mkdocstrings[python]
+
+      - name: Semantic Release (publish to PyPI, tag, changelog, GH Release)
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release publish
+
+      - name: Build docs (MkDocs)
+        run: mkdocs build --strict
+
+      - name: Deploy docs to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site

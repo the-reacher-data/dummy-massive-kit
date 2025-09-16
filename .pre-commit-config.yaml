@@ -1,0 +1,155 @@
+# Pre-commit configuration for a senior-level Python repository
+# This configuration includes comprehensive checks for code quality, security, and best practices
+
+repos:
+  # === CODE QUALITY & FORMATTING ===
+  
+  # Ruff - Fast Python linter (replaces flake8, isort, and more)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.5
+    hooks:
+      - id: ruff
+        name: "🔍 Ruff Linter"
+        args: ["--fix", "--exit-non-zero-on-fix"]
+      - id: ruff-format
+        name: "🎨 Ruff Formatter"
+
+  # Black - Python code formatter (keeping as backup/alternative)
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+        name: "⚫ Black Formatter"
+        args: ["--line-length", "100"]
+
+  # pyupgrade - Automatically upgrade Python syntax
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        name: "⬆️ PyUpgrade"
+        args: ["--py311-plus"]
+
+  # === TYPE CHECKING ===
+  
+  # mypy - Static type checker
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.1
+    hooks:
+      - id: mypy
+        name: "🔍 MyPy Type Checker"
+        additional_dependencies: [pydantic, types-requests]
+        args: ["--strict", "--ignore-missing-imports"]
+
+  # === SECURITY & VULNERABILITIES ===
+  
+  # Bandit - Security linter for Python
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+        name: "🔒 Bandit Security Scanner"
+        args: ["-ll", "-r", "src", "--skip", "B101"]
+
+  # Safety - Check for known security vulnerabilities
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.2
+    hooks:
+      - id: python-safety-dependencies-check
+        name: "🛡️ Safety Vulnerability Check"
+
+  # === GENERAL FILE CHECKS ===
+  
+  # Pre-commit hooks collection
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-merge-conflict
+        name: "🔀 Check for merge conflicts"
+      - id: check-yaml
+        name: "📄 Check YAML syntax"
+      - id: check-toml
+        name: "📄 Check TOML syntax"
+      - id: check-json
+        name: "📄 Check JSON syntax"
+      - id: end-of-file-fixer
+        name: "📝 Fix end of files"
+      - id: trailing-whitespace
+        name: "✂️ Trim trailing whitespace"
+      - id: check-added-large-files
+        name: "📦 Check for large files"
+        args: ["--maxkb=1000"]
+      - id: detect-private-key
+        name: "🔑 Detect private keys"
+
+  # === SECRETS DETECTION ===
+  
+  # detect-secrets - Prevent secrets from being committed
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: "🕵️ Detect Secrets"
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: package.lock.json
+
+  # === CUSTOM CHECKS ===
+  
+  - repo: local
+    hooks:
+      # Check TODO/FIXME comments
+      - id: check-todos
+        language: system
+        name: "📝 Check for TODO/FIXME comments"
+        entry: |
+          bash -c 'if git diff --cached --name-only | xargs grep -l "TODO\|FIXME\|XXX\|HACK" 2>/dev/null; then
+            echo "⚠️ Found TODO/FIXME comments in staged files"
+            echo "💡 Consider creating issues for these items"
+            git diff --cached --name-only | xargs grep -n "TODO\|FIXME\|XXX\|HACK" 2>/dev/null || true
+          fi'
+        stages: [pre-commit]
+        pass_filenames: false
+
+      # Python import order check (additional to isort)
+      - id: python-no-relative-imports
+        language: system
+        name: "🔗 No relative imports in production code"
+        entry: |
+          bash -c 'if git diff --cached --name-only | grep "src/" | xargs grep -l "from \." 2>/dev/null; then
+            echo "❌ Relative imports found in production code"
+            git diff --cached --name-only | grep "src/" | xargs grep -n "from \." 2>/dev/null || true
+            exit 1
+          fi'
+        stages: [pre-commit]
+      
+      # Run tests before push
+      - id: run-tests
+        name: "🧪 Run tests before push"
+        entry: pytest -v
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+  # === COMMIT MESSAGE VALIDATION ===
+  
+  # Conventional Commits validation
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.28.0
+    hooks:
+      - id: commitizen
+        name: "📝 Conventional Commits"
+        stages: [commit-msg]
+
+# CI flag for faster execution in CI environments
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
