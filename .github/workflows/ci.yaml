@@ -286,13 +286,8 @@ jobs:
       - name: 🏷️ Generate Development Version
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            IDENTIFIER="pr${{ github.event.number }}"
-          else
-            IDENTIFIER="${{ github.ref_name }}"
-          fi
-
-          DEV_VERSION=$(python scripts/generate_dev_version.py "$IDENTIFIER" "${{ needs.setup.outputs.base-version }}")
+          BASE_VERSION="${{ needs.setup.outputs.base-version }}"
+          DEV_VERSION=$(python scripts/generate_dev_version.py "$BASE_VERSION")
           echo "dev-version=$DEV_VERSION" >> $GITHUB_OUTPUT
           echo "🏷️ Generated version: $DEV_VERSION"
 
@@ -303,7 +298,7 @@ jobs:
       
       - name: ✅ Check Distribution (PEP 440 compliance)
         run: uv run twine check dist/*
-        
+
       - name: 📦 Build Package
         run: uv run python -m build
 
