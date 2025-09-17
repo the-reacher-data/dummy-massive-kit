@@ -1,103 +1,47 @@
-#!/usr/bin/env python3
 """
-Generate development versions for TestPyPI following PEP 440.
+Generate a unique PEP 440–compliant development version string.
 
-Format: X.Y.Z.dev{EPOCH}+{IDENTIFIER}
-Example: 1.2.0.dev1705328400+feature-api-auth
+Format: <base_version>.dev<timestamp>+g<commit_sha>
+Example: 1.2.0.dev1705328700+g1a2b3c4
 """
 
 import re
 import sys
 import time
+from pathlib import Path
+import subprocess
 
 
 def get_base_version(pyproject_path: str = "pyproject.toml") -> str:
-    """
-    Extract base version from pyproject.toml.
-
-    Returns:
-        Base version like "0.1.0"
-    """
+    """Extract base version from pyproject.toml or fallback to 0.1.0."""
     try:
-        with open(pyproject_path, encoding="utf-8") as f:
-            content = f.read()
-
-        match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
-        if match:
-            return match.group(1)
-        else:
-            return "0.1.0"  # Fallback
+        content = Path(pyproject_path).read_text(encoding="utf-8")
     except FileNotFoundError:
-        return "0.1.0"  # Fallback
+        return "0.1.0"
+
+    match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
+    return match.group(1) if match else "0.1.0"
 
 
-def sanitize_identifier(identifier: str) -> str:
-    """
-    Sanitize identifier for PEP 440 compliance.
-
-    Args:
-        identifier: Raw identifier (branch name, PR number, etc.)
-
-    Returns:
-        Sanitized identifier safe for version string
-    """
-    # Remove refs/heads/ if present
-    identifier = identifier.replace("refs/heads/", "")
-
-    # Replace invalid characters with hyphens
-    identifier = re.sub(r"[^a-zA-Z0-9\-\.]", "-", identifier)
-
-    # Remove consecutive hyphens
-    identifier = re.sub(r"-+", "-", identifier)
-
-    # Remove leading/trailing hyphens
-    identifier = identifier.strip("-")
-
-    # Limit length to 20 chars
-    if len(identifier) > 20:
-        identifier = identifier[:20]
-
-    return identifier.lower()
+def get_commit_sha(short: bool = True) -> str:
+    """Get the current git commit hash."""
+    try:
+        sha = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+        return sha[:7] if short else sha
+    except Exception:
+        return "nogit"
 
 
-def generate_dev_version(base_version: str, identifier: str) -> str:
-    """
-    Generate a development version string.
-
-    Args:
-        base_version: Base version like "1.2.0"
-        identifier: Unique identifier (branch, PR, etc.)
-
-    Returns:
-        Development version like "1.2.0.dev1705328400+feature-api"
-    """
-    # Get current epoch timestamp
+def generate_dev_version(base_version: str, sha: str) -> str:
+    """Generate a valid dev version with timestamp and commit hash."""
     epoch = int(time.time())
-
-    # Sanitize identifier
-    clean_identifier = sanitize_identifier(identifier)
-
-    # Generate dev version
-    dev_version = f"{base_version}.dev{epoch}.{clean_identifier}"
-
-    return dev_version
+    return f"{base_version}.dev{epoch}+g{sha}"
 
 
 def main() -> None:
-    """CLI interface for the script."""
-    min_args = 2
-    if len(sys.argv) < min_args:
-        print("Usage: python generate_dev_version.py <identifier> [base_version]")
-        print("Examples:")
-        print("  python generate_dev_version.py feature/api-auth")
-        print("  python generate_dev_version.py pr123")
-        print("  python generate_dev_version.py release/next 2.0.0")
-        sys.exit(1)
-
-    identifier = sys.argv[1]
-    base_version = sys.argv[2] if len(sys.argv) > 2 else get_base_version()
-
-    dev_version = generate_dev_version(base_version, identifier)
+    base_version = sys.argv[1] if len(sys.argv) > 1 else get_base_version()
+    sha = get_commit_sha()
+    dev_version = generate_dev_version(base_version, sha)
     print(dev_version)
 
 
