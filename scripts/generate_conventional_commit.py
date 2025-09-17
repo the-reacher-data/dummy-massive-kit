@@ -12,7 +12,6 @@ Examples:
 import re
 import sys
 
-
 def parse_branch_name(branch_name: str) -> tuple[str, str | None, str]:
     """
     Parse branch name into type, scope, and description.
