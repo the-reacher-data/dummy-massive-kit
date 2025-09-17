@@ -78,7 +78,7 @@ def generate_dev_version(base_version: str, identifier: str) -> str:
     clean_identifier = sanitize_identifier(identifier)
 
     # Generate dev version
-    dev_version = f"{base_version}.dev{epoch}+{clean_identifier}"
+    dev_version = f"{base_version}.dev{epoch}.{clean_identifier}"
 
     return dev_version
 

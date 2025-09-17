@@ -299,7 +299,11 @@ jobs:
       - name: 📝 Update Version
         run: |
           python scripts/patch_version.py "${{ steps.version.outputs.dev-version }}"
-
+        
+      
+      - name: ✅ Check Distribution (PEP 440 compliance)
+        run: uv run twine check dist/*
+        
       - name: 📦 Build Package
         run: uv run python -m build
 
