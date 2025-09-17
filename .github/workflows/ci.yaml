@@ -23,12 +23,13 @@ jobs:
         name: Extract base version
         run: |
           echo "python-version=${{ env.PYTHON_VERSION }}" >> $GITHUB_OUTPUT
-          if [[ -f pyproject.toml ]]; then
-            BASE=$(grep -E '^version\s*=' pyproject.toml | sed -E 's/version\s*=\s*"([^"]+)"/\1/')
-            BASE=${BASE:-0.1.0}
-          else
-            BASE="0.1.0"
-          fi
+          BASE=$(python3 - <<'PY'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+            print(data.get("project", {}).get("version", "0.1.0"))
+          PY
+          )
           echo "base-version=$BASE" >> $GITHUB_OUTPUT
 
   # ---------- QUALITY ----------
