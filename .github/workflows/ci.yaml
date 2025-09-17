@@ -89,8 +89,6 @@ jobs:
           --cov-report=xml \
           --cov-report=term-missing \
           --junitxml=test-results.xml > test-output.txt 2>&1 || true
-          fi
-
           # Count passed/failed using awk
           PASSED=$(awk '/passed/ {for(i=1;i<=NF;i++) if($i=="passed") print $(i-1)}' test-output.txt | tail -1)
           FAILED=$(awk '/failed/ {for(i=1;i<=NF;i++) if($i=="failed") print $(i-1)}' test-output.txt | tail -1)
