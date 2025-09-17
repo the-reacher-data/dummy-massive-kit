@@ -302,7 +302,7 @@ jobs:
       - name: 🧪 Upload to TestPyPI
         env:
           PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          run: |
+        run: |
             set -euo pipefail
             echo "🔑 Using token: ${PYPI_TOKEN:0:5}******** (masked)"
             echo "📦 Uploading package(s) to TestPyPI..."
