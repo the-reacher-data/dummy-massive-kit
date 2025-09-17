@@ -30,6 +30,7 @@ jobs:
             print(data.get("project", {}).get("version", "0.1.0"))
           PY
           )
+          echo "BASE=$BASE"
           echo "base-version=$BASE" >> $GITHUB_OUTPUT
 
   # ---------- QUALITY ----------
@@ -84,24 +85,33 @@ jobs:
         id: tests
         run: |
           uv run pytest -q \
-            --cov=src \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            --junitxml=test-results.xml > test-output.txt 2>&1 || true
+          --cov=src \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --junitxml=test-results.xml > test-output.txt 2>&1 || true
+          fi
 
-          PASSED=$(grep -oE '[0-9]+(?= passed)' test-output.txt | tail -1 || echo "0")
-          FAILED=$(grep -oE '[0-9]+(?= failed)' test-output.txt | tail -1 || echo "0")
+          # Count passed/failed using awk
+          PASSED=$(awk '/passed/ {for(i=1;i<=NF;i++) if($i=="passed") print $(i-1)}' test-output.txt | tail -1)
+          FAILED=$(awk '/failed/ {for(i=1;i<=NF;i++) if($i=="failed") print $(i-1)}' test-output.txt | tail -1)
+
+          PASSED=${PASSED:-0}
+          FAILED=${FAILED:-0}
           TOTAL=$((PASSED + FAILED))
-          COVERAGE=$(grep -oE '[0-9]+(?=%)' test-output.txt | tail -1 || echo "0")
+
+          # Extract last percentage (coverage)
+          COVERAGE=$(grep -o '[0-9]\+%' test-output.txt | tail -1 | tr -d '%')
+          COVERAGE=${COVERAGE:-0}
 
           echo "results=${PASSED}/${TOTAL}" >> $GITHUB_OUTPUT
           echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+
+          echo "✅ Tests: $PASSED/$TOTAL passed ($COVERAGE% coverage)"
 
           if [[ "$FAILED" != "0" ]]; then
             cat test-output.txt
             exit 1
           fi
-
       - name: Bandit (security scan)
         id: security
         run: |
