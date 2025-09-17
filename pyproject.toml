@@ -1,6 +1,6 @@
 [project]
 name = "dummy_massivekit"
-version = "0.1.0"
+version = "0.2.0"
 description = "MassiveKit: Declarative framework for APIs, ETL and Microservices with Clean Code and SOLID principles"
 readme = "README.md"
 license = {text = "MIT"}

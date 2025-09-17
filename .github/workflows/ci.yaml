@@ -23,13 +23,22 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Configuration
+      - name: ⚙️ Setup Configuration  
         id: config
         run: |
           echo "python-version=${{ env.PYTHON_VERSION }}" >> $GITHUB_OUTPUT
-          echo "base-version=$(grep -E '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')" >> $GITHUB_OUTPUT
           echo "commit-sha=${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "short-sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          
+          # Extract version using Python to avoid shell parsing issues
+          BASE_VERSION=$(python3 -c "
+          import re
+          with open('pyproject.toml', 'r') as f:
+              content = f.read()
+          match = re.search(r'version = \"([^\"]+)\"', content)
+          print(match.group(1) if match else '0.1.0')
+          ")
+          echo "base-version=${BASE_VERSION}" >> $GITHUB_OUTPUT
 
   # 🧪 TEST & QUALITY: Comprehensive testing and quality checks
   test-quality:
