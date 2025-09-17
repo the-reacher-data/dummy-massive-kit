@@ -302,13 +302,15 @@ jobs:
       - name: 🧪 Upload to TestPyPI
         env:
           PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: |
-          uv run python -m twine upload \
-            --repository-url https://test.pypi.org/legacy/ \
-            -u __token__ -p "${PYPI_TOKEN}" \
-            --non-interactive \
-            --skip-existing \
-            dist/* || echo "⚠️ TestPyPI upload failed (version may already exist)"
+          run: |
+            set -euo pipefail
+            echo "🔑 Using token: ${PYPI_TOKEN:0:5}******** (masked)"
+            echo "📦 Uploading package(s) to TestPyPI..."
+            uv run twine upload \
+              --repository-url https://test.pypi.org/legacy/ \
+              -u __token__ -p "${PYPI_TOKEN}" \
+              --verbose \
+              dist/*
 
       - name: 📋 Prerelease Summary
         run: |
