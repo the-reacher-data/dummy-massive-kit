@@ -5,7 +5,7 @@
 This project uses a sophisticated automated CI/CD pipeline with:
 - 🤖 **Conventional commits** generated from branch names + PR titles
 - 🧪 **TestPyPI prereleases** for all branches/PRs (PEP 440 compliant)
-- 🚀 **PyPI releases** only on master merges  
+- 🚀 **PyPI releases** only on master merges
 - 📝 **Automatic changelog** generation with semantic versioning
 - 📊 **Comprehensive quality reporting** with coverage, linting, and security
 

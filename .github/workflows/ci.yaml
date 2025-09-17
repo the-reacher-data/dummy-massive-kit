@@ -23,13 +23,13 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Configuration  
+      - name: ⚙️ Setup Configuration
         id: config
         run: |
           echo "python-version=${{ env.PYTHON_VERSION }}" >> $GITHUB_OUTPUT
           echo "commit-sha=${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "short-sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
-          
+
           # Extract version using Python to avoid shell parsing issues
           BASE_VERSION=$(python3 -c "
           import re
