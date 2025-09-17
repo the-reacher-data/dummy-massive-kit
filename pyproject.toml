@@ -112,10 +112,29 @@ tag_format = "v{version}"
 changelog_file = "CHANGELOG.md"
 build_command = "python -m build"
 upload_to_pypi = true
-upload_to_release = true
-prerelease_token = "dev"
+  upload_to_release = true
+  prerelease_token = "dev"
 
 [dependency-groups]
-dev = [
-    "pytest-cov>=7.0.0",
+# Dependencies for CI test and quality jobs
+ci = [
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "bandit>=1.7",
+]
+
+# Dependencies for building and releasing packages
+build = [
+  "build>=1.0",
+  "twine>=5.0",
+  "python-semantic-release>=9.0",
+  "tomli>=2.0",
+  "tomli-w>=1.0",
+]
+
+# Dependencies for building documentation
+docs = [
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.25",
 ]

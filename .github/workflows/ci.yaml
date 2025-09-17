@@ -9,7 +9,6 @@ on:
 
 env:
   PYTHON_VERSION: "3.11"
-  UV_CACHE_DIR: /tmp/.uv-cache
 
 jobs:
   test-and-quality:
@@ -26,12 +25,10 @@ jobs:
 
       - name: ⚡ Install UV
         uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
+
 
       - name: 📦 Install Dependencies
-        run: uv sync --dev
+        run: uv sync --group ci
 
       - name: 🔍 Lint (Ruff)
         run: uv run ruff check .
@@ -68,12 +65,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: ⚡ Install UV  
+      - name: ⚡ Install UV
         uses: astral-sh/setup-uv@v3
 
       - name: 🔧 Install Build Tools
-        run: |
-          pip install build twine python-semantic-release tomli tomli-w
+        run: uv sync --group build
 
       - name: 🏷️ Generate Prerelease Version
         run: |
@@ -114,8 +110,7 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: 🔧 Install Release Tools
-        run: |
-          pip install build twine python-semantic-release mkdocs-material mkdocstrings[python]
+        run: uv sync --group build --group docs
 
       - name: 🚀 Semantic Release
         env:
@@ -125,7 +120,6 @@ jobs:
 
       - name: 📚 Build Documentation
         run: |
-          uv sync --dev
           uv run mkdocs build --strict || echo "📝 Docs build failed - continuing"
 
       - name: 🌐 Deploy Docs to GitHub Pages
