@@ -1,8 +1,8 @@
-name: CI/CD
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: ["feature/**", "fix/**", "hotfix/**", "chore/**", "release/**", "master"]
+    branches: ["feature/**", "fix/**", "hotfix/**", "patch/**", "chore/**", "docs/**", "release/**", "master"]
   pull_request:
     branches: ["master", "release/**"]
     types: [opened, synchronize, reopened, ready_for_review]
@@ -11,33 +11,115 @@ env:
   PYTHON_VERSION: "3.11"
 
 jobs:
-  test-and-quality:
+  # 🔄 SETUP: Shared base configuration
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      python-version: ${{ steps.config.outputs.python-version }}
+      base-version: ${{ steps.config.outputs.base-version }}
+      commit-sha: ${{ steps.config.outputs.commit-sha }}
+      short-sha: ${{ steps.config.outputs.short-sha }}
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🐍 Setup Python ${{ env.PYTHON_VERSION }}
-        id: setup-python
+      - name: ⚙️ Setup Configuration
+        id: config
+        run: |
+          echo "python-version=${{ env.PYTHON_VERSION }}" >> $GITHUB_OUTPUT
+          echo "base-version=$(grep -E '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')" >> $GITHUB_OUTPUT
+          echo "commit-sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "short-sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+  # 🧪 TEST & QUALITY: Comprehensive testing and quality checks
+  test-quality:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    outputs:
+      test-results: ${{ steps.tests.outputs.results }}
+      coverage-percent: ${{ steps.tests.outputs.coverage }}
+      lint-errors: ${{ steps.lint.outputs.errors }}
+      type-errors: ${{ steps.types.outputs.errors }}
+      security-issues: ${{ steps.security.outputs.issues }}
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ needs.setup.outputs.python-version }}
 
       - name: ⚡ Install UV
         uses: astral-sh/setup-uv@v3
 
-
-      - name: 📦 Install Dependencies
+      - name: 📦 Install CI Dependencies
         run: uv sync --group ci
 
-      - name: 🔍 Lint (Ruff)
-        run: uv run ruff check .
+      - name: 🔍 Lint Check (Ruff)
+        id: lint
+        run: |
+          if uv run ruff check . > lint-output.txt 2>&1; then
+            echo "errors=0" >> $GITHUB_OUTPUT
+            echo "✅ No lint errors found"
+          else
+            ERROR_COUNT=$(grep -c "error" lint-output.txt || echo "0")
+            echo "errors=$ERROR_COUNT" >> $GITHUB_OUTPUT
+            echo "❌ Found $ERROR_COUNT lint errors"
+            cat lint-output.txt
+            exit 1
+          fi
 
       - name: 🔍 Type Check (MyPy)
-        run: uv run mypy src/dummy_massivekit
+        id: types
+        run: |
+          if uv run mypy src/dummy_massivekit > type-output.txt 2>&1; then
+            echo "errors=0" >> $GITHUB_OUTPUT
+            echo "✅ No type errors found"
+          else
+            ERROR_COUNT=$(grep -c "error:" type-output.txt || echo "0")
+            echo "errors=$ERROR_COUNT" >> $GITHUB_OUTPUT
+            echo "❌ Found $ERROR_COUNT type errors"
+            cat type-output.txt
+            exit 1
+          fi
 
       - name: 🧪 Run Tests with Coverage
-        run: uv run pytest src/tests/ --cov=src/dummy_massivekit --cov-report=xml --cov-report=term-missing -v
+        id: tests
+        run: |
+          uv run pytest src/tests/ \
+            --cov=src/dummy_massivekit \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --junitxml=test-results.xml \
+            -v > test-output.txt 2>&1
+
+          # Extract test results
+          PASSED=$(grep -oP '\d+(?= passed)' test-output.txt || echo "0")
+          FAILED=$(grep -oP '\d+(?= failed)' test-output.txt || echo "0")
+          TOTAL=$((PASSED + FAILED))
+
+          # Extract coverage percentage
+          COVERAGE=$(grep -oP '\d+(?=%)' test-output.txt | tail -1 || echo "0")
+
+          echo "results=${PASSED}/${TOTAL}" >> $GITHUB_OUTPUT
+          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+
+          echo "✅ Tests: $PASSED/$TOTAL passed ($COVERAGE% coverage)"
+          cat test-output.txt
+
+      - name: 🔒 Security Scan (Bandit)
+        id: security
+        run: |
+          if uv run bandit -r src/dummy_massivekit/ -f json > security-output.json 2>&1; then
+            echo "issues=0" >> $GITHUB_OUTPUT
+            echo "✅ No security issues found"
+          else
+            ISSUE_COUNT=$(jq '.results | length' security-output.json 2>/dev/null || echo "0")
+            echo "issues=$ISSUE_COUNT" >> $GITHUB_OUTPUT
+            echo "⚠️ Found $ISSUE_COUNT security issues"
+            uv run bandit -r src/dummy_massivekit/ || true
+          fi
 
       - name: 📊 Upload Coverage
         if: github.event_name == 'pull_request'
@@ -46,52 +128,206 @@ jobs:
           file: ./coverage.xml
           fail_ci_if_error: false
 
-      - name: 🔒 Security Scan (Bandit)
-        run: uv run bandit -r src/dummy_massivekit/ || true
+      - name: 📋 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            test-results.xml
+            coverage.xml
+            *-output.txt
+            security-output.json
 
-  # 🧪 PRERELEASE: Only in PRs
-  prerelease:
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
-    needs: [test-and-quality]
+  # 📝 CONVENTIONAL COMMIT: Generate conventional commits for squash merges
+  conventional-commit:
     runs-on: ubuntu-latest
+    needs: [setup]
+    if: |
+      github.event_name == 'pull_request' &&
+      !startsWith(github.head_ref, 'release/')
+    outputs:
+      commit-message: ${{ steps.generate.outputs.commit-message }}
+      changelog-entry: ${{ steps.generate.outputs.changelog-entry }}
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ needs.setup.outputs.python-version }}
+
+      - name: 📝 Generate Conventional Commit
+        id: generate
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+
+          COMMIT_MSG=$(python scripts/generate_conventional_commit.py "$BRANCH_NAME" "$PR_TITLE")
+
+          echo "commit-message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "changelog-entry=$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+          echo "### 📝 Generated Conventional Commit" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$COMMIT_MSG" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  # 📋 CHANGELOG PREVIEW: Show changelog preview in PRs
+  changelog-preview:
+    runs-on: ubuntu-latest
+    needs: [test-quality, conventional-commit]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 💬 Comment PR with Preview
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testResults = "${{ needs.test-quality.outputs.test-results }}";
+            const coverage = "${{ needs.test-quality.outputs.coverage-percent }}";
+            const lintErrors = "${{ needs.test-quality.outputs.lint-errors }}";
+            const typeErrors = "${{ needs.test-quality.outputs.type-errors }}";
+            const securityIssues = "${{ needs.test-quality.outputs.security-issues }}";
+
+            let qualityStatus = "✅ All checks passed";
+            let qualityDetails = "";
+
+            if (lintErrors > 0 || typeErrors > 0 || securityIssues > 0) {
+              qualityStatus = "❌ Quality checks failed";
+              qualityDetails = `
+            **Issues Found:**
+            - Lint errors: ${lintErrors}
+            - Type errors: ${typeErrors}
+            - Security issues: ${securityIssues}`;
+            }
+
+            let changelogPreview = "";
+            if ("${{ needs.conventional-commit.outputs.commit-message }}" !== "") {
+              changelogPreview = `
+            ## 📝 Changelog Preview
+
+            If this PR is merged, the following will be added to the changelog:
+
+            ### ${{ needs.conventional-commit.outputs.commit-message }}
+
+            - **Branch**: \`${{ github.head_ref }}\`
+            - **PR**: #${{ github.event.number }} - ${{ github.event.pull_request.title }}`;
+            } else {
+              changelogPreview = `
+            ## 📋 Release Branch Merge
+
+            This PR merges a release branch. The changelog will include all conventional commits from the release branch.`;
+            }
+
+            const body = `## 🎯 CI/CD Summary
+
+            ### ✅ Quality Results
+            - **Tests**: ${testResults} (${coverage}% coverage)
+            - **Lint Errors**: ${lintErrors}
+            - **Type Errors**: ${typeErrors}
+            - **Security Issues**: ${securityIssues}
+
+            ${qualityStatus}${qualityDetails}
+
+            ${changelogPreview}
+
+            > This summary is automatically generated and updated on each commit.`;
+
+            // Find existing comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.data.find(comment =>
+              comment.body.includes('🎯 CI/CD Summary')
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+  # 🧪 PRERELEASE: Upload to TestPyPI for all non-master branches/PRs
+  prerelease:
+    runs-on: ubuntu-latest
+    needs: [setup, test-quality]
+    if: |
+      github.ref != 'refs/heads/master' &&
+      needs.test-quality.result == 'success'
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ needs.setup.outputs.python-version }}
 
       - name: ⚡ Install UV
         uses: astral-sh/setup-uv@v3
 
-      - name: 🔧 Install Build Tools
+      - name: 🔧 Install Build Dependencies
         run: uv sync --group build
 
-      - name: 🏷️ Generate Prerelease Version
+      - name: 🏷️ Generate Development Version
+        id: version
         run: |
-          python scripts/patch_version.py ${{ github.event.number }} ${{ github.sha }}
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            IDENTIFIER="pr${{ github.event.number }}"
+          else
+            IDENTIFIER="${{ github.ref_name }}"
+          fi
+
+          DEV_VERSION=$(python scripts/generate_dev_version.py "$IDENTIFIER" "${{ needs.setup.outputs.base-version }}")
+          echo "dev-version=$DEV_VERSION" >> $GITHUB_OUTPUT
+          echo "🏷️ Generated version: $DEV_VERSION"
+
+      - name: 📝 Update Version
+        run: |
+          python scripts/patch_version.py "${{ steps.version.outputs.dev-version }}"
 
       - name: 📦 Build Package
-        run: python -m build
+        run: uv run python -m build
 
       - name: 🧪 Upload to TestPyPI
         env:
           PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: |
-          python -m twine upload \
+          uv run python -m twine upload \
             --repository-url https://test.pypi.org/legacy/ \
             -u __token__ -p "${PYPI_TOKEN}" \
-            dist/* || echo "⚠️ TestPyPI upload failed (normal if version exists)"
+            --non-interactive \
+            --skip-existing \
+            dist/* || echo "⚠️ TestPyPI upload failed (version may already exist)"
 
-  # 🚀 RELEASE: Only in push to master
+      - name: 📋 Prerelease Summary
+        run: |
+          echo "### 🧪 Prerelease Generated" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: \`${{ steps.version.outputs.dev-version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **TestPyPI**: [dummy-massivekit]( https://test.pypi.org/project/dummy-massivekit/${{ steps.version.outputs.dev-version }}/)" >> $GITHUB_STEP_SUMMARY
+
+  # 🚀 RELEASE: Upload to PyPI for master branch only
   release:
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    needs: [test-and-quality]
     runs-on: ubuntu-latest
+    needs: [setup, test-quality]
+    if: |
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'push' &&
+      needs.test-quality.result == 'success'
     permissions:
       contents: write
       id-token: write
@@ -104,27 +340,76 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ needs.setup.outputs.python-version }}
 
       - name: ⚡ Install UV
         uses: astral-sh/setup-uv@v3
 
-      - name: 🔧 Install Release Tools
+      - name: 🔧 Install Release Dependencies
         run: uv sync --group build --group docs
 
       - name: 🚀 Semantic Release
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release publish
+        run: |
+          # Configure git for semantic-release
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Run semantic-release
+          uv run semantic-release publish
 
       - name: 📚 Build Documentation
         run: |
           uv run mkdocs build --strict || echo "📝 Docs build failed - continuing"
 
-      - name: 🌐 Deploy Docs to GitHub Pages
+      - name: 🌐 Deploy Documentation
         if: success()
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
+
+  # 📊 SUMMARY: Final summary of all results
+  summary:
+    runs-on: ubuntu-latest
+    needs: [setup, test-quality, conventional-commit, prerelease, release]
+    if: always()
+    steps:
+      - name: 📊 Generate Final Summary
+        run: |
+          echo "## 🎯 Final CI/CD Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Test Results
+          echo "### ✅ Quality Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests**: ${{ needs.test-quality.outputs.test-results }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage**: ${{ needs.test-quality.outputs.coverage-percent }}%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lint Errors**: ${{ needs.test-quality.outputs.lint-errors }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type Errors**: ${{ needs.test-quality.outputs.type-errors }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security Issues**: ${{ needs.test-quality.outputs.security-issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Job Results
+          echo "### 🔄 Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Setup**: ${{ needs.setup.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test & Quality**: ${{ needs.test-quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Conventional Commit**: ${{ needs.conventional-commit.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Prerelease**: ${{ needs.prerelease.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release**: ${{ needs.release.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Conventional Commit Info
+          if [ "${{ needs.conventional-commit.outputs.commit-message }}" != "" ]; then
+            echo "### 📝 Generated Conventional Commit" >> $GITHUB_STEP_SUMMARY
+            echo "\`${{ needs.conventional-commit.outputs.commit-message }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Overall Status
+          if [ "${{ needs.test-quality.result }}" = "success" ]; then
+            echo "### 🎉 Overall Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Overall Status: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
