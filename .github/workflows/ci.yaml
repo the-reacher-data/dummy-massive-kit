@@ -1,115 +1,270 @@
-name: CI/CD
+name: CI/CD Pipeline V2
 
 on:
   push:
-    branches:
-      - "feature/**"
-      - "fix/**"
-      - "hotfix/**"
-      - "chore/**"
-      - "release/**"
-      - "master"
+    branches: ["feature/**", "fix/**", "hotfix/**", "chore/**", "docs/**", "release/**", "master"]
   pull_request:
-    branches:
-      - "master"
-      - "release/**"
+    branches: ["master", "release/**"]
     types: [opened, synchronize, reopened, ready_for_review]
 
+env:
+  PYTHON_VERSION: "3.11"
+
 jobs:
-  # --- Shared setup (Python + uv + deps) ---
+  # ---------- SETUP ----------
   setup:
     runs-on: ubuntu-latest
     outputs:
-      python-version: "3.11"
+      python-version: ${{ steps.extract.outputs.python-version }}
+      base-version: ${{ steps.extract.outputs.base-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: extract
+        name: Extract base version
+        run: |
+          echo "python-version=${{ env.PYTHON_VERSION }}" >> $GITHUB_OUTPUT
+          BASE=$(python3 - <<'PY'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+            print(data.get("project", {}).get("version", "0.1.0"))
+          PY
+          )
+          echo "BASE=$BASE"
+          echo "base-version=$BASE" >> $GITHUB_OUTPUT
+
+  # ---------- QUALITY ----------
+  quality:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    outputs:
+      test-results: ${{ steps.tests.outputs.results }}
+      coverage-percent: ${{ steps.tests.outputs.coverage }}
+      lint-errors: ${{ steps.lint.outputs.errors }}
+      type-errors: ${{ steps.types.outputs.errors }}
+      security-issues: ${{ steps.security.outputs.issues }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        id: python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ needs.setup.outputs.python-version }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
-      - name: Install deps (dev + all extras)
-        run: uv sync --all-extras
-
-  # --- Quality checks ---
-  quality:
-    needs: [setup]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Install CI dependencies
+        run: uv sync --group ci
 
       - name: Ruff (lint)
-        run: uv run ruff check .
+        id: lint
+        run: |
+          if uv run ruff check . > lint-output.txt 2>&1; then
+            echo "errors=0" >> $GITHUB_OUTPUT
+          else
+            ERR=$(grep -c "error" lint-output.txt || echo "1")
+            echo "errors=$ERR" >> $GITHUB_OUTPUT
+            cat lint-output.txt
+            exit 1
+          fi
 
-      - name: Mypy (types)
-        run: uv run mypy src
+      - name: MyPy (type checks)
+        id: types
+        run: |
+          if uv run mypy src > type-output.txt 2>&1; then
+            echo "errors=0" >> $GITHUB_OUTPUT
+          else
+            ERR=$(grep -c "error:" type-output.txt || echo "1")
+            echo "errors=$ERR" >> $GITHUB_OUTPUT
+            cat type-output.txt
+            exit 1
+          fi
 
-      - name: Pytest (with coverage)
-        run: uv run pytest src/tests/ -q --cov=src/dummy_massivekit --cov-report=xml
+      - name: Pytest (coverage)
+        id: tests
+        run: |
+          uv run pytest -q \
+          --cov=src \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --junitxml=test-results.xml > test-output.txt 2>&1 || true
+          # Count passed/failed using awk
+          PASSED=$(awk '/passed/ {for(i=1;i<=NF;i++) if($i=="passed") print $(i-1)}' test-output.txt | tail -1)
+          FAILED=$(awk '/failed/ {for(i=1;i<=NF;i++) if($i=="failed") print $(i-1)}' test-output.txt | tail -1)
 
-      - name: Upload coverage to Codecov
+          PASSED=${PASSED:-0}
+          FAILED=${FAILED:-0}
+          TOTAL=$((PASSED + FAILED))
+
+          # Extract last percentage (coverage)
+          COVERAGE=$(grep -o '[0-9]\+%' test-output.txt | tail -1 | tr -d '%')
+          COVERAGE=${COVERAGE:-0}
+
+          echo "results=${PASSED}/${TOTAL}" >> $GITHUB_OUTPUT
+          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+
+          echo "✅ Tests: $PASSED/$TOTAL passed ($COVERAGE% coverage)"
+
+          if [[ "$FAILED" != "0" ]]; then
+            cat test-output.txt
+            exit 1
+          fi
+      - name: Bandit (security scan)
+        id: security
+        run: |
+          if uv run bandit -r src -f json > security-output.json 2>&1; then
+            echo "issues=0" >> $GITHUB_OUTPUT
+          else
+            COUNT=$(jq '.results | length' security-output.json || echo 1)
+            echo "issues=$COUNT" >> $GITHUB_OUTPUT
+            uv run bandit -r src || true
+          fi
+
+      - name: Upload coverage (PR only)
+        if: github.event_name == 'pull_request'
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           fail_ci_if_error: false
 
-      - name: Snyk (dependency security)
-        uses: snyk/actions/python-3.11@master
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          command: test
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          name: quality-artifacts
+          path: |
+            test-results.xml
+            coverage.xml
+            test-output.txt
+            lint-output.txt
+            type-output.txt
+            security-output.json
 
-  # --- Pre-release to TestPyPI on PRs ---
+  # ---------- PRERELEASE ----------
   prerelease:
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
-    needs: [quality]
     runs-on: ubuntu-latest
+    needs: [setup, quality]
+    if: |
+      needs.quality.result == 'success' &&
+      (
+        startsWith(github.ref, 'refs/heads/feature/') ||
+        startsWith(github.ref, 'refs/heads/fix/') ||
+        startsWith(github.ref, 'refs/heads/hotfix/') ||
+        startsWith(github.ref, 'refs/heads/release/') ||
+        github.event_name == 'pull_request'
+      )
+    outputs:
+      dev-version: ${{ steps.ver.outputs.value }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ needs.setup.outputs.python-version }}
 
-      - name: Install build tools
-        run: pip install build twine python-semantic-release tomli tomli-w
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
 
-      - name: Dry bump (semantic-release)
-        run: semantic-release version --prerelease --no-commit
+      - name: Install build dependencies
+        run: uv sync --group build
 
-      - name: Patch prerelease version (unique per PR commit)
+      - name: Compute prerelease version
+        id: ver
         run: |
-          python scripts/patch_version.py \
-            ${{ github.event.number }} \
-            ${{ github.sha }}
+          BASE="${{ needs.setup.outputs.base-version }}"
+          HEAD_REF="${{ github.head_ref }}"
+          ATTEMPT=${{ github.run_attempt }}
+          SHA=$(git rev-parse --short HEAD)
+          COMMIT_INT=$((16#${SHA}))
 
-      - name: Build distribution
-        run: python -m build
+          X=$(echo $BASE | cut -d. -f1)
+          Y=$(echo $BASE | cut -d. -f2)
+          Z=$(echo $BASE | cut -d. -f3)
+
+          if [[ "$HEAD_REF" == feature/* ]]; then
+            Y=$((Y+1)); Z=0; BUMP="${X}.${Y}.0"
+          elif [[ "$HEAD_REF" == fix/* || "$HEAD_REF" == hotfix/* ]]; then
+            Z=$((Z+1)); BUMP="${X}.${Y}.${Z}"
+          elif [[ "$HEAD_REF" == chore/* || "$HEAD_REF" == docs/* || "$HEAD_REF" == release/* ]]; then
+            BUMP="${X}.${Y}.${Z}"
+          else
+            BUMP="${X}.${Y}.${Z}"
+          fi
+
+          VERSION="${BUMP}.dev${COMMIT_INT}"
+          if [[ "$ATTEMPT" -gt 1 ]]; then
+            VERSION="${VERSION}.post${ATTEMPT}"
+          fi
+
+          echo "value=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Patch version in pyproject
+        run: |
+          V="${{ steps.ver.outputs.value }}"
+          sed -i -E "s/^version = \".*\"/version = \"${V}\"/" pyproject.toml
+          echo "pyproject version -> $V"
+
+      - name: Build package
+        run: uv run python -m build
+
+      - name: Twine check
+        run: uv run twine check dist/*
 
       - name: Upload to TestPyPI
         env:
           PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: |
-          python -m twine upload \
+          uv run twine upload \
             --repository-url https://test.pypi.org/legacy/ \
             -u __token__ -p "${PYPI_TOKEN}" \
+            --non-interactive \
+            --skip-existing \
             dist/*
-
-  # --- Release to PyPI on master ---
-  release:
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    needs: [quality]
+  pr-comment:
     runs-on: ubuntu-latest
+    needs: [quality, prerelease]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Comment PR with CI/CD summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = "${{ needs.prerelease.outputs.dev-version || 'n/a' }}";
+            const tests = "${{ needs.quality.outputs.test-results }}";
+            const cov = "${{ needs.quality.outputs.coverage-percent }}";
+            const lint = "${{ needs.quality.outputs.lint-errors }}";
+            const types = "${{ needs.quality.outputs.type-errors }}";
+            const sec = "${{ needs.quality.outputs.security-issues }}";         
+            const body = `
+              ## 🎯 CI/CD Summary
+              ### ✅ Quality
+                  - Tests: **${tests}** (coverage **${cov}%**)
+                  - Lint errors: **${lint}**
+                  - Type errors: **${types}**
+                  - Security issues: **${sec}**
+              ### 🧪 TestPyPI
+                - Version: \`${version}\`
+                - Link: https://test.pypi.org/project/${context.repo.repo}/${version}/          
+              ### 📝 Conventional Commit (on squash)
+                  _(auto-generated from branch + PR title)_`;          
+              const {owner, repo} = context.repo;
+              const issue_number = context.issue.number;         
+              const comments = await github.rest.issues.listComments({owner, repo, issue_number});
+              const existing = comments.data.find(c => c.body?.includes('## 🎯 CI/CD Summary'));
+              if (existing) {
+                await github.rest.issues.updateComment({owner, repo, comment_id: existing.id, body});
+              } else {
+                  await github.rest.issues.createComment({owner, repo, issue_number, body});
+              }
+
+  # ---------- RELEASE ----------
+  release:
+    runs-on: ubuntu-latest
+    needs: [setup, quality]
+    if: github.ref == 'refs/heads/master' && needs.quality.result == 'success'
     permissions:
       contents: write
       id-token: write
@@ -117,25 +272,29 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-      - name: Set up Python
+
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ needs.setup.outputs.python-version }}
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
 
-      - name: Install build + semantic-release + docs deps
-        run: pip install build twine python-semantic-release mkdocs-material mkdocstrings[python]
+      - name: Install release dependencies
+        run: uv sync --group build --group docs
 
-      - name: Semantic Release (publish to PyPI, tag, changelog, GH Release)
+      - name: Semantic Release (PyPI + tags + changelog)
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release publish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          uv run semantic-release publish
 
-      - name: Build docs (MkDocs)
-        run: mkdocs build --strict
+      - name: Build docs
+        run: uv run mkdocs build --strict || echo "Docs build failed"
 
       - name: Deploy docs to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

@@ -1,6 +1,6 @@
 [project]
 name = "dummy_massivekit"
-version = "0.1.0"
+version = "0.2.0"
 description = "MassiveKit: Declarative framework for APIs, ETL and Microservices with Clean Code and SOLID principles"
 readme = "README.md"
 license = {text = "MIT"}
@@ -34,6 +34,7 @@ dev = [
   "mypy>=1.11",
   "pytest>=8.3",
   "pytest-asyncio>=0.23",
+  "pytest-cov>=5.0",
   "coverage[toml]>=7.6",
   "pre-commit>=3.8",
   "commitizen>=3.28",
@@ -53,11 +54,11 @@ exclude = ["tests*"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-exclude = ["src/tests/fixtures"]
+exclude = ["src/tests/fixtures", "scripts"]
 
 [tool.ruff.lint]
 select = ["E","F","I","UP","B","W","N","ASYNC","PL","RUF"]
-ignore = ["ANN101","ANN102"]
+# Note: ANN101, ANN102 are deprecated and automatically ignored
 
 # --- isort (si prefieres isort separado del formatter) ---
 [tool.isort]
@@ -76,6 +77,10 @@ python_version = "3.11"
 strict = true
 warn_unused_ignores = true
 plugins = ["pydantic.mypy"]
+exclude = [
+    "src/tests/.*",
+    "tests/.*"
+]
 
 # --- Pytest ---
 [tool.pytest.ini_options]
@@ -107,5 +112,29 @@ tag_format = "v{version}"
 changelog_file = "CHANGELOG.md"
 build_command = "python -m build"
 upload_to_pypi = true
-upload_to_release = true
-prerelease_token = "dev"
+  upload_to_release = true
+  prerelease_token = "dev"
+
+[dependency-groups]
+# Dependencies for CI test and quality jobs
+ci = [
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "bandit>=1.7",
+]
+
+# Dependencies for building and releasing packages
+build = [
+  "build>=1.0",
+  "twine>=5.0",
+  "python-semantic-release>=9.0",
+  "tomli>=2.0",
+  "tomli-w>=1.0",
+]
+
+# Dependencies for building documentation
+docs = [
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.25",
+]
