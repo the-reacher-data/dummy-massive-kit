@@ -147,8 +147,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, quality]
     if: |
-      github.event_name == 'pull_request' &&
-      needs.quality.result == 'success'
+      needs.quality.result == 'success' &&
+      (
+        startsWith(github.ref, 'refs/heads/feature/') ||
+        startsWith(github.ref, 'refs/heads/fix/') ||
+        startsWith(github.ref, 'refs/heads/hotfix/') ||
+        startsWith(github.ref, 'refs/heads/release/') ||
+        github.event_name == 'pull_request'
+      )
     steps:
       - uses: actions/checkout@v4
 
