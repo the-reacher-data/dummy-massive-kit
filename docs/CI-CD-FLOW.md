@@ -3,6 +3,7 @@
 ## 📋 Overview
 
 This project uses a sophisticated automated CI/CD pipeline with:
+
 - 🤖 **Conventional commits** generated from branch names + PR titles
 - 🧪 **TestPyPI prereleases** for all branches/PRs (PEP 440 compliant)
 - 🚀 **PyPI releases** only on master merges
@@ -12,6 +13,7 @@ This project uses a sophisticated automated CI/CD pipeline with:
 ## 🏗️ Architecture
 
 ### Jobs Overview:
+
 1. **🔄 Setup**: Shared configuration and base setup
 2. **🧪 Test & Quality**: Comprehensive testing, linting, type checking, security
 3. **📝 Conventional Commit**: Generates conventional commits (non-release branches only)
@@ -25,12 +27,14 @@ This project uses a sophisticated automated CI/CD pipeline with:
 ### Format: `type/scope-description`
 
 **Examples:**
+
 - `feature/api-new-endpoint` → `feat(api): New endpoint`
 - `fix/auth-login-bug` → `fix(auth): Login bug`
 - `hotfix/security-patch` → `fix(security): Patch`
 - `chore/deps-update` → `chore(deps): Update`
 
 ### Supported Types:
+
 - `feature/feat` → `feat`
 - `fix/bugfix` → `fix`
 - `hotfix/patch` → `fix`
@@ -52,6 +56,7 @@ git push origin feature/api-user-management
 ```
 
 **Triggers:**
+
 - ✅ `test-and-quality` job (lint, type check, tests)
 - ✅ `prerelease` job (TestPyPI upload with branch-specific version)
 
@@ -64,12 +69,14 @@ git push origin feature/api-user-management
 ```
 
 **Triggers:**
+
 - ✅ `test-and-quality` job
 - ✅ `changelog-preview` job (shows preview in PR comment)
 - ✅ `prerelease` job (TestPyPI upload with PR-specific version)
 
 **Changelog Preview in PR:**
-```
+
+```bash
 ## 📝 Changelog Preview
 
 If this PR is merged, the following will be added to the changelog:
@@ -90,6 +97,7 @@ git push origin release/v1.2.0
 ```
 
 **Triggers:**
+
 - ✅ `test-and-quality` job
 - ✅ `release` job with `--prerelease` flag
 - 🔄 Generates conventional commits from merged PR history
@@ -104,6 +112,7 @@ git push origin master
 ```
 
 **Triggers:**
+
 - ✅ `test-and-quality` job
 - ✅ `release` job (final release)
 - 📦 PyPI upload
