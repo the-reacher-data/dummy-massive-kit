@@ -6,6 +6,13 @@ __pycache__/
 .venv/
 .cursorignore
 .cursorrules
+bandit.json
+snyk.json
+coverage.xml
+pytest.xml
+pytest.log
+lint.log
+types.log
 
 # C extensions
 *.so
