@@ -3,9 +3,9 @@ name = "dummy_massivekit"
 version = "0.2.0"
 description = "MassiveKit: Declarative framework for APIs, ETL and Microservices with Clean Code and SOLID principles"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "MIT" }
 requires-python = ">=3.11"
-authors = [{name="MassiveDataScope"}]
+authors = [{ name = "MassiveDataScope" }]
 keywords = ["fastapi", "clean-architecture", "solid", "omegaconf"]
 
 dependencies = [
@@ -44,23 +44,25 @@ dev = [
   "pyupgrade>=3.15",
 ]
 
-
+[dependency-groups]
+ci = ["pytest-cov>=5.0", "ruff>=0.6", "mypy>=1.11", "bandit>=1.7"]
+build = ["build>=1.0", "twine>=5.0", "python-semantic-release>=9.0", "tomli>=2.0", "tomli-w>=1.0"]
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.25"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 exclude = ["tests*"]
 
-# --- Ruff (lint + import order + formatter opcional) ---
+# --- Ruff ---
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 exclude = ["src/tests/fixtures", "scripts"]
 
 [tool.ruff.lint]
-select = ["E","F","I","UP","B","W","N","ASYNC","PL","RUF"]
-# Note: ANN101, ANN102 are deprecated and automatically ignored
+select = ["E", "F", "I", "UP", "B", "W", "N", "ASYNC", "PL", "RUF"]
 
-# --- isort (si prefieres isort separado del formatter) ---
+# --- isort ---
 [tool.isort]
 profile = "black"
 line_length = 100
@@ -77,10 +79,7 @@ python_version = "3.11"
 strict = true
 warn_unused_ignores = true
 plugins = ["pydantic.mypy"]
-exclude = [
-    "src/tests/.*",
-    "tests/.*"
-]
+exclude = ["src/tests/.*", "tests/.*"]
 
 # --- Pytest ---
 [tool.pytest.ini_options]
@@ -88,53 +87,46 @@ testpaths = ["src/tests"]
 
 # --- Coverage ---
 [tool.coverage.run]
-source = ["src/dummy_massivekit"]
+source = ["src/"]
 omit = ["src/tests/*"]
 branch = true
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+fail_under = 85
 
-# --- Commitizen: Conventional Commits ---
+# --- Commitizen ---
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.0"
+version = "0.2.0"
 tag_format = "v$version"
 update_changelog_on_bump = true
 changelog_file = "CHANGELOG.md"
 
+# --- Semantic Release ---
 [tool.semantic_release]
 version_source = "tag"
-branch = "master"
-commit_parser = "angular"              # Conventional Commits
-tag_format = "v{version}"
+commit_parser = "angular"
 changelog_file = "CHANGELOG.md"
-build_command = "python -m build"
+build_command = "uv run python -m build"
 upload_to_pypi = true
-  upload_to_release = true
-  prerelease_token = "dev"
+upload_to_release = true
 
-[dependency-groups]
-# Dependencies for CI test and quality jobs
-ci = [
-  "pytest-cov>=5.0",
-  "ruff>=0.6",
-  "mypy>=1.11",
-  "bandit>=1.7",
-]
+[tool.semantic_release.version_toml]
+path = "pyproject.toml"
+pattern = 'version = "(?P<version>.*)"'
 
-# Dependencies for building and releasing packages
-build = [
-  "build>=1.0",
-  "twine>=5.0",
-  "python-semantic-release>=9.0",
-  "tomli>=2.0",
-  "tomli-w>=1.0",
-]
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
 
-# Dependencies for building documentation
-docs = [
-  "mkdocs-material>=9.5",
-  "mkdocstrings[python]>=0.25",
-]
+[tool.semantic_release.branches.release]
+match = "release/.*"
+prerelease = true
+
+[tool.semantic_release.commit_parser_options]
+allowed_types = ["feat", "fix", "hotfix", "docs", "chore", "refactor", "perf"]
+
+[tool.semantic_release.changelog]
+ignore_types = ["chore", "docs"]

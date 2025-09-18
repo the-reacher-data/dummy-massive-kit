@@ -4,9 +4,12 @@ __pycache__/
 *$py.class
 .vscode/
 .venv/
+.cursorignore
+.cursorrules
 
 # C extensions
 *.so
+
 
 # Distribution / packaging
 .Python

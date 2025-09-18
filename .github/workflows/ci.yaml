@@ -1,303 +1,166 @@
-name: CI/CD Pipeline V2
+name: CI
 
 on:
   push:
-    branches: ["feature/**", "fix/**", "hotfix/**", "chore/**", "docs/**", "release/**", "master"]
+    branches: ["feature/**", "multifeature/**", "fix/**", "hotfix/**", "chore/**", "docs/**"]
   pull_request:
-    branches: ["master", "release/**"]
-    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
 
 env:
   PYTHON_VERSION: "3.11"
 
 jobs:
-  # ---------- SETUP ----------
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      python-version: ${{ steps.extract.outputs.python-version }}
-      base-version: ${{ steps.extract.outputs.base-version }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: extract
-        name: Extract base version
-        run: |
-          echo "python-version=${{ env.PYTHON_VERSION }}" >> $GITHUB_OUTPUT
-          BASE=$(python3 - <<'PY'
-          import tomllib
-          with open("pyproject.toml", "rb") as f:
-            data = tomllib.load(f)
-            print(data.get("project", {}).get("version", "0.1.0"))
-          PY
-          )
-          echo "BASE=$BASE"
-          echo "base-version=$BASE" >> $GITHUB_OUTPUT
-
-  # ---------- QUALITY ----------
   quality:
     runs-on: ubuntu-latest
-    needs: [setup]
     outputs:
-      test-results: ${{ steps.tests.outputs.results }}
-      coverage-percent: ${{ steps.tests.outputs.coverage }}
-      lint-errors: ${{ steps.lint.outputs.errors }}
-      type-errors: ${{ steps.types.outputs.errors }}
-      security-issues: ${{ steps.security.outputs.issues }}
+      tests: ${{ steps.pytest.outputs.results }}
+      coverage: ${{ steps.pytest.outputs.coverage }}
+      lint: ${{ steps.lint.outputs.errors }}
+      types: ${{ steps.types.outputs.errors }}
+      bandit: ${{ steps.bandit.outputs.issues }}
+      snyk: ${{ steps.snyk.outputs.issues }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ needs.setup.outputs.python-version }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v3
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - run: uv sync --group ci
 
-      - name: Install CI dependencies
-        run: uv sync --group ci
-
-      - name: Ruff (lint)
-        id: lint
+      - id: lint
         run: |
-          if uv run ruff check . > lint-output.txt 2>&1; then
+          if uv run ruff check . > lint.log 2>&1; then
             echo "errors=0" >> $GITHUB_OUTPUT
           else
-            ERR=$(grep -c "error" lint-output.txt || echo "1")
+            ERR=$(grep -c "error" lint.log || echo "1")
             echo "errors=$ERR" >> $GITHUB_OUTPUT
-            cat lint-output.txt
             exit 1
           fi
 
-      - name: MyPy (type checks)
-        id: types
+      - id: types
         run: |
-          if uv run mypy src > type-output.txt 2>&1; then
+          if uv run mypy src > types.log 2>&1; then
             echo "errors=0" >> $GITHUB_OUTPUT
           else
-            ERR=$(grep -c "error:" type-output.txt || echo "1")
+            ERR=$(grep -c "error:" types.log || echo "1")
             echo "errors=$ERR" >> $GITHUB_OUTPUT
-            cat type-output.txt
             exit 1
           fi
 
-      - name: Pytest (coverage)
-        id: tests
+      - id: pytest
         run: |
-          uv run pytest -q \
-          --cov=src \
-          --cov-report=xml \
-          --cov-report=term-missing \
-          --junitxml=test-results.xml > test-output.txt 2>&1 || true
-          # Count passed/failed using awk
-          PASSED=$(awk '/passed/ {for(i=1;i<=NF;i++) if($i=="passed") print $(i-1)}' test-output.txt | tail -1)
-          FAILED=$(awk '/failed/ {for(i=1;i<=NF;i++) if($i=="failed") print $(i-1)}' test-output.txt | tail -1)
-
-          PASSED=${PASSED:-0}
-          FAILED=${FAILED:-0}
+          set -e
+          uv run pytest --cov=src --cov-report=xml --cov-report=term-missing -v > pytest.log || true
+          PASSED=$(grep -oP '\d+(?= passed)' pytest.log | tail -1 || echo "0")
+          FAILED=$(grep -oP '\d+(?= failed)' pytest.log | tail -1 || echo "0")
           TOTAL=$((PASSED + FAILED))
-
-          # Extract last percentage (coverage)
-          COVERAGE=$(grep -o '[0-9]\+%' test-output.txt | tail -1 | tr -d '%')
-          COVERAGE=${COVERAGE:-0}
-
+          COVERAGE=$(grep -oP '\d+(?=%)' pytest.log | tail -1 || echo "0")
           echo "results=${PASSED}/${TOTAL}" >> $GITHUB_OUTPUT
           echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
-
-          echo "✅ Tests: $PASSED/$TOTAL passed ($COVERAGE% coverage)"
-
-          if [[ "$FAILED" != "0" ]]; then
-            cat test-output.txt
-            exit 1
+          if [ "$COVERAGE" -lt 85 ]; then
+            echo "❌ Coverage below 85%"; exit 1
           fi
-      - name: Bandit (security scan)
-        id: security
+
+      - id: bandit
         run: |
-          if uv run bandit -r src -f json > security-output.json 2>&1; then
+          if uv run bandit -r src -f json -o bandit.json; then
             echo "issues=0" >> $GITHUB_OUTPUT
           else
-            COUNT=$(jq '.results | length' security-output.json || echo 1)
+            COUNT=$(jq '.results | length' bandit.json || echo 1)
             echo "issues=$COUNT" >> $GITHUB_OUTPUT
-            uv run bandit -r src || true
           fi
 
-      - name: Upload coverage (PR only)
+      - id: snyk
+        uses: snyk/actions/python@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --json-file-output=snyk.json
+          run: |
+            COUNT=$(jq '.vulnerabilities | length' snyk.json || echo 0)
+            echo "issues=$COUNT" >> $GITHUB_OUTPUT
+
+      - uses: codecov/codecov-action@v4
         if: github.event_name == 'pull_request'
-        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           fail_ci_if_error: false
 
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: quality-artifacts
+          name: ci-artifacts
           path: |
-            test-results.xml
+            pytest.log
             coverage.xml
-            test-output.txt
-            lint-output.txt
-            type-output.txt
-            security-output.json
+            lint.log
+            types.log
+            bandit.json
+            snyk.json
 
-  # ---------- PRERELEASE ----------
   prerelease:
     runs-on: ubuntu-latest
-    needs: [setup, quality]
+    needs: quality
     if: |
       needs.quality.result == 'success' &&
-      (
-        startsWith(github.ref, 'refs/heads/feature/') ||
-        startsWith(github.ref, 'refs/heads/fix/') ||
-        startsWith(github.ref, 'refs/heads/hotfix/') ||
-        startsWith(github.ref, 'refs/heads/release/') ||
-        github.event_name == 'pull_request'
-      )
-    outputs:
-      dev-version: ${{ steps.ver.outputs.value }}
+      (startsWith(github.ref, 'refs/heads/feature/') ||
+       startsWith(github.ref, 'refs/heads/multifeature/') ||
+       startsWith(github.ref, 'refs/heads/fix/') ||
+       startsWith(github.ref, 'refs/heads/hotfix/') ||
+       github.event_name == 'pull_request')
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ needs.setup.outputs.python-version }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: Install build dependencies
-        run: uv sync --group build
-
-      - name: Compute prerelease version
-        id: ver
-        run: |
-          BASE="${{ needs.setup.outputs.base-version }}"
-          HEAD_REF="${{ github.head_ref }}"
-          ATTEMPT=${{ github.run_attempt }}
-          SHA=$(git rev-parse --short HEAD)
-          COMMIT_INT=$((16#${SHA}))
-
-          X=$(echo $BASE | cut -d. -f1)
-          Y=$(echo $BASE | cut -d. -f2)
-          Z=$(echo $BASE | cut -d. -f3)
-
-          if [[ "$HEAD_REF" == feature/* ]]; then
-            Y=$((Y+1)); Z=0; BUMP="${X}.${Y}.0"
-          elif [[ "$HEAD_REF" == fix/* || "$HEAD_REF" == hotfix/* ]]; then
-            Z=$((Z+1)); BUMP="${X}.${Y}.${Z}"
-          elif [[ "$HEAD_REF" == chore/* || "$HEAD_REF" == docs/* || "$HEAD_REF" == release/* ]]; then
-            BUMP="${X}.${Y}.${Z}"
-          else
-            BUMP="${X}.${Y}.${Z}"
-          fi
-
-          VERSION="${BUMP}.dev${COMMIT_INT}"
-          if [[ "$ATTEMPT" -gt 1 ]]; then
-            VERSION="${VERSION}.post${ATTEMPT}"
-          fi
-
-          echo "value=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Patch version in pyproject
-        run: |
-          V="${{ steps.ver.outputs.value }}"
-          sed -i -E "s/^version = \".*\"/version = \"${V}\"/" pyproject.toml
-          echo "pyproject version -> $V"
-
-      - name: Build package
-        run: uv run python -m build
-
-      - name: Twine check
-        run: uv run twine check dist/*
-
-      - name: Upload to TestPyPI
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --group build
+      - name: Dry-run semantic-release
+        id: semrel
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 20
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
         env:
-          PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: |
-          uv run twine upload \
-            --repository-url https://test.pypi.org/legacy/ \
-            -u __token__ -p "${PYPI_TOKEN}" \
-            --non-interactive \
-            --skip-existing \
-            dist/*
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      - run: |
+          echo "Next version (predicted): ${{ steps.semrel.outputs.new_release_version }}"
+
   pr-comment:
     runs-on: ubuntu-latest
     needs: [quality, prerelease]
     if: github.event_name == 'pull_request'
     steps:
-      - name: Comment PR with CI/CD summary
-        uses: actions/github-script@v7
+      - uses: actions/github-script@v7
         with:
           script: |
-            const version = "${{ needs.prerelease.outputs.dev-version || 'n/a' }}";
-            const tests = "${{ needs.quality.outputs.test-results }}";
-            const cov = "${{ needs.quality.outputs.coverage-percent }}";
-            const lint = "${{ needs.quality.outputs.lint-errors }}";
-            const types = "${{ needs.quality.outputs.type-errors }}";
-            const sec = "${{ needs.quality.outputs.security-issues }}";         
+            const tests = "${{ needs.quality.outputs.tests }}";
+            const cov = "${{ needs.quality.outputs.coverage }}";
+            const lint = "${{ needs.quality.outputs.lint }}";
+            const types = "${{ needs.quality.outputs.types }}";
+            const bandit = "${{ needs.quality.outputs.bandit }}";
+            const snyk = "${{ needs.quality.outputs.snyk }}";
+            const version = "${{ needs.prerelease.outputs.new_release_version || 'n/a' }}";
             const body = `
-              ## 🎯 CI/CD Summary
-              ### ✅ Quality
-                  - Tests: **${tests}** (coverage **${cov}%**)
-                  - Lint errors: **${lint}**
-                  - Type errors: **${types}**
-                  - Security issues: **${sec}**
-              ### 🧪 TestPyPI
-                - Version: \`${version}\`
-                - Link: https://test.pypi.org/project/${context.repo.repo}/${version}/          
-              ### 📝 Conventional Commit (on squash)
-                  _(auto-generated from branch + PR title)_`;          
-              const {owner, repo} = context.repo;
-              const issue_number = context.issue.number;         
-              const comments = await github.rest.issues.listComments({owner, repo, issue_number});
-              const existing = comments.data.find(c => c.body?.includes('## 🎯 CI/CD Summary'));
-              if (existing) {
-                await github.rest.issues.updateComment({owner, repo, comment_id: existing.id, body});
-              } else {
-                  await github.rest.issues.createComment({owner, repo, issue_number, body});
-              }
-
-  # ---------- RELEASE ----------
-  release:
-    runs-on: ubuntu-latest
-    needs: [setup, quality]
-    if: github.ref == 'refs/heads/master' && needs.quality.result == 'success'
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ needs.setup.outputs.python-version }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: Install release dependencies
-        run: uv sync --group build --group docs
-
-      - name: Semantic Release (PyPI + tags + changelog)
-        env:
-          PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          uv run semantic-release publish
-
-      - name: Build docs
-        run: uv run mkdocs build --strict || echo "Docs build failed"
-
-      - name: Deploy docs to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
+            ## 🎯 CI/CD Summary
+            - **Tests**: ${tests} (coverage ${cov}%)
+            - **Lint errors**: ${lint}
+            - **Type errors**: ${types}
+            - **Bandit issues**: ${bandit}
+            - **Snyk vulnerabilities**: ${snyk}
+            - **Next version (predicted)**: ${version}
+            `;
+            const {owner, repo} = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.rest.issues.listComments({owner, repo, issue_number});
+            const existing = comments.data.find(c => c.body.includes("## 🎯 CI/CD Summary"));
+            if (existing) {
+              await github.rest.issues.updateComment({owner, repo, comment_id: existing.id, body});
+            } else {
+              await github.rest.issues.createComment({owner, repo, issue_number, body});
+            }
