@@ -51,8 +51,7 @@ jobs:
       - name: 🧪 Install Test Dependencies
         run: |
           # Sync dependencies from pyproject.toml (ci + dev groups)
-          uv sync --group ci --group dev
-
+          uv sync --group ci --extra dev
           # Verify pytest and coverage are available
           uv run pytest --version
           uv run coverage --version
