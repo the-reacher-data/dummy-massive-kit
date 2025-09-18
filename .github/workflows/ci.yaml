@@ -91,10 +91,15 @@ jobs:
           echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
           echo "results=${PASSED}/${TOTAL} (${SKIPPED} skipped)" >> "$GITHUB_OUTPUT"
 
-      - name: 🔒 Bandit Security Scanner
-        run: uv run bandit -r src --exclude src/tests -f sarif -o bandit.sarif
+      - name: 🔒 Run Bandit
+        run: uv run bandit -r src --exclude src/tests -f json -o bandit.json
 
-      - name: 📤 Upload Bandit SARIF results
+      - name: 🔄 Convert Bandit JSON to SARIF
+        run: |
+            pip install sarif-tools
+            sarif-tools from-bandit bandit.json > bandit.sarif
+
+      - name: 📤 Upload Bandit SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: bandit.sarif
