@@ -31,6 +31,7 @@ jobs:
       - run: uv sync --group ci --extra dev
 
       - id: lint
+        name: 🔍 Ruff Linter
         run: |
           if uv run ruff check . > lint.log 2>&1; then
             echo "errors=0" >> "$GITHUB_OUTPUT"
@@ -40,6 +41,7 @@ jobs:
             exit 1
           fi
       - id: types
+        name: 🔍 MyPy Type Checker
         run: |
           if uv run mypy src > types.log 2>&1; then
             echo "errors=0" >> "$GITHUB_OUTPUT"
@@ -84,12 +86,14 @@ jobs:
           echo "results=${PASSED}/${TOTAL} (${SKIPPED} skipped)" >> $GITHUB_OUTPUT
 
       - id: bandit
+        name: 🔒 Bandit Security Scanner
         run: |
           uv run bandit -r src -f json -o bandit.json
-          COUNT=$(jq '.results | length' bandit.json || echo 0)
-          echo "issues=$COUNT" >> $GITHUB_OUTPUT
-
+          cat bandit.json
+          COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
+          printf "issues=%s\n" "$COUNT" >> "$GITHUB_OUTPUT"
       - id: snyk
+        name: 🔒 Snyk Security Scanner
         uses: snyk/actions/python@master
         env:
           SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
@@ -97,6 +101,7 @@ jobs:
           args: --json-file-output=snyk.json
 
       - id: snyk-process
+        name: 🔒 Snyk Security Scanner Vulnerabilities
         run: |
           COUNT=$(jq '.vulnerabilities | length' snyk.json || echo 0)
           echo "snyk_issues=$COUNT" >> $GITHUB_OUTPUT
