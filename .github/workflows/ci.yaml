@@ -151,8 +151,8 @@ jobs:
           BASE=$(python3 - <<'PY'
             import tomllib
             with open("pyproject.toml","rb") as f:
-            print(tomllib.load(f)["project"]["version"])
-            PY
+              print(tomllib.load(f)["project"]["version"])
+          PY
           )
           IFS='.' read -r X Y Z <<< "$BASE"
           if [[ "$BRANCH" == feature!/* || "$BRANCH" == breaking/* ]]; then
