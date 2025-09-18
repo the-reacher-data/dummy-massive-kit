@@ -48,19 +48,97 @@ jobs:
             exit 1
           fi
 
-      - id: pytest
+      - name: 🧪 Run Tests
+        id: pytest
+        uses: pavelzw/pytest-action@v2
+        with:
+          test_root: src/tests/
+          coverage: src/
+          coverage_threshold: 85
+          coverage_fail_under: 85
+          verbose: true
+          fail_fast: false
+        env:
+          PYTHONPATH: src/
+
+      - name: 📊 Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+        if: always()
+
+      - name: 📈 Extract Coverage Percentage
+        id: coverage
         run: |
-          set -e
-          uv run pytest --cov=src --cov-report=xml --cov-report=term-missing -v > pytest.log || true
-          PASSED=$(grep -oP '\d+(?= passed)' pytest.log | tail -1 || echo "0")
-          FAILED=$(grep -oP '\d+(?= failed)' pytest.log | tail -1 || echo "0")
-          TOTAL=$((PASSED + FAILED))
-          COVERAGE=$(grep -oP '\d+(?=%)' pytest.log | tail -1 || echo "0")
-          echo "results=${PASSED}/${TOTAL}" >> $GITHUB_OUTPUT
-          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
-          if [ "$COVERAGE" -lt 85 ]; then
-            echo "❌ Coverage below 85%"; exit 1
+          if [ -f coverage.xml ]; then
+            COVERAGE=$(python3 -c "
+            import xml.etree.ElementTree as ET
+            try:
+            tree = ET.parse('coverage.xml')
+            root = tree.getroot()
+            packages = root.find('packages')
+            if packages is not None:
+              total_coverage = 0
+              total_files = 0
+              for package in packages.findall('package'):
+                for file in package.findall('file'):
+                  if 'line-rate' in file.attrib:
+                      total_coverage += float(file.attrib['line-rate']) * 100
+                      total_files += 1
+              if total_files > 0:
+                print(f'{total_coverage / total_files:.1f}')
+              else:
+                print('0.0')
+            else:
+              print('0.0')
+          except Exception:
+            print('0.0')
+            print('0.0')
+            )
+            echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+            echo "Coverage: ${COVERAGE}%"
+          else:
+            echo "coverage=0" >> $GITHUB_OUTPUT
+            echo "⚠️ No coverage.xml found"
           fi
+        shell: bash
+
+      - name: 📋 Test Summary
+        id: test-summary
+        run: |
+          if [ -f pytest.xml ]; then
+            # Parse JUnit XML for test counts (install xmlstarlet if needed)
+            if command -v xmlstarlet &> /dev/null; then
+              PASSED=$(xmlstarlet sel -t -v "//testcase[count(failure)=0]" pytest.xml 2>/dev/null | wc -l || echo "0")
+              FAILED=$(xmlstarlet sel -t -v "//testcase/failure" pytest.xml 2>/dev/null | wc -l || echo "0")
+              SKIPPED=$(xmlstarlet sel -t -v "//testcase/skipped" pytest.xml 2>/dev/null | wc -l || echo "0")
+            else
+              # Fallback: simple log parsing
+              PASSED=$(grep -c " PASSED " pytest.log 2>/dev/null || echo "0")
+              FAILED=$(grep -c " FAILED " pytest.log 2>/dev/null || echo "0")
+              SKIPPED=$(grep -c " SKIPPED " pytest.log 2>/dev/null || echo "0")
+            fi
+            TOTAL=$((PASSED + FAILED + SKIPPED))
+          else
+            # No test results available
+            PASSED=0
+            FAILED=0
+            SKIPPED=0
+            TOTAL=0
+          fi
+
+          echo "results=${PASSED}/${TOTAL} (${SKIPPED} skipped)" >> $GITHUB_OUTPUT
+          echo "Tests: ${PASSED} passed, ${FAILED} failed, ${SKIPPED} skipped"
+
+          # Fail if tests failed
+          if [ "$FAILED" -gt 0 ]; then
+            echo "❌ ${FAILED} tests failed"
+            exit 1
+          fi
+        shell: bash
 
       - id: bandit
         run: |
