@@ -17,11 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tests: ${{ steps.test-summary.outputs.results }}
-      coverage: ${{ steps.pytest.outputs.coverage }}
+      coverage: ${{ steps.test-summary.outputs.coverage }}
       lint: ${{ steps.lint.outputs.errors }}
       types: ${{ steps.types.outputs.errors }}
       bandit: ${{ steps.bandit.outputs.issues }}
-      snyk: ${{ steps.snyk-process.outputs.snyk_issues }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -65,9 +64,6 @@ jobs:
             -o junit_family=legacy \
             -v --tb=short | tee pytest.log
 
-          LINE_RATE=$(grep -oP 'line-rate="\K[^"]+' coverage.xml | head -1)
-          COVERAGE=$(echo "$LINE_RATE * 100" | bc -l | awk '{printf "%.0f", $0}')
-          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
@@ -85,11 +81,15 @@ jobs:
         id: test-summary
         run: |
           sudo apt-get update -qq && sudo apt-get install -y xmlstarlet
-          PASSED=$(xmlstarlet sel -t -v "//testcase[not(failure) and not(error) and not(skipped)]" junit.xml | wc -l)
-          FAILED=$(xmlstarlet sel -t -v "//testcase[failure or error]" junit.xml | wc -l)
-          SKIPPED=$(xmlstarlet sel -t -v "//testcase[skipped]" junit.xml | wc -l)
+          LINE_RATE=$(xmlstarlet sel -t -v "/coverage/@line-rate" coverage.xml 2>/dev/null || echo 0)
+          COVERAGE=$(python -c "print(int(float('$LINE_RATE') * 100))")
+          PASSED=$(xmlstarlet sel -t -v "count(//testcase[not(failure) and not(error) and not(skipped)])" junit.xml 2>/dev/null || echo 0)
+          FAILED=$(xmlstarlet sel -t -v "count(//testcase[failure or error])" junit.xml 2>/dev/null || echo 0)
+          SKIPPED=$(xmlstarlet sel -t -v "count(//testcase[skipped])" junit.xml 2>/dev/null || echo 0)
           TOTAL=$((PASSED + FAILED + SKIPPED))
-          echo "results=${PASSED}/${TOTAL} (${SKIPPED} skipped)" >> $GITHUB_OUTPUT
+
+          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+          echo "results=${PASSED}/${TOTAL} (${SKIPPED} skipped)" >> "$GITHUB_OUTPUT"
 
       - id: bandit
         name: 🔒 Bandit Security Scanner
@@ -112,37 +112,81 @@ jobs:
             bandit.json
 
   prerelease:
+    name: Pre-release (TestPyPI)
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     needs: quality
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref }}
+      cancel-in-progress: true
     outputs:
-      new_release_version: ${{ steps.semrel.outputs.new_release_version }}
+      prerelease_version: ${{ steps.bump.outputs.version }}
     if: |
       needs.quality.result == 'success' &&
-      (startsWith(github.ref, 'refs/heads/feature/') ||
-       startsWith(github.ref, 'refs/heads/multifeature/') ||
-       startsWith(github.ref, 'refs/heads/fix/') ||
-       startsWith(github.ref, 'refs/heads/hotfix/') ||
-       github.event_name == 'pull_request')
+      (
+        startsWith(github.head_ref, 'feature/') ||
+        startsWith(github.head_ref, 'multifeature/') ||
+        startsWith(github.head_ref, 'fix/') ||
+        startsWith(github.head_ref, 'hotfix/') ||
+        startsWith(github.head_ref, 'chore/')
+      )
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
       - uses: astral-sh/setup-uv@v3
-      - run: uv sync --group build
-      - name: Dry-run semantic-release
-        id: semrel
-        uses: cycjimmy/semantic-release-action@v4
+
+      - name: Sync build deps
+        run: uv sync --group build
+
+      - name: Compute prerelease version (by branch name)
+        id: bump
+        shell: bash
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          BASE=$(python3 - <<'PY'
+            import tomllib
+            with open("pyproject.toml","rb") as f:
+            print(tomllib.load(f)["project"]["version"])
+            PY
+          )
+          IFS='.' read -r X Y Z <<< "$BASE"
+          if [[ "$BRANCH" == feature!/* || "$BRANCH" == breaking/* ]]; then
+            X=$((X+1)); Y=0; Z=0
+          elif [[ "$BRANCH" == feature/* || "$BRANCH" == multifeature/* ]]; then
+            Y=$((Y+1)); Z=0
+          elif [[ "$BRANCH" == fix/* || "$BRANCH" == hotfix/* ]]; then
+            Z=$((Z+1))
+          elif [[ "$BRANCH" == chore/* ]]; then
+            # no bump; keep X.Y.Z
+            :
+          fi
+          PREDICTED="${X}.${Y}.${Z}"
+          DEV_TS="${EPOCHSECONDS:-$(date +%s)}"
+          VERSION="${PREDICTED}.dev${DEV_TS}"
+
+          sed -i -E "s/^version = \".*\"/version = \"${VERSION}\"/" pyproject.toml
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "📦 Prerelease: ${VERSION}"
+
+      - name: Build package
+        run: uv run python -m build
+
+      - name: Check built distributions
+        run: uv run twine check dist/*
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          semantic_version: 20
-          extra_plugins: |
-            @semantic-release/changelog
-            @semantic-release/git
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          skip-existing: true
+
 
   pr-comment:
     runs-on: ubuntu-latest
@@ -160,7 +204,7 @@ jobs:
             const lint = "${{ needs.quality.outputs.lint }}";
             const types = "${{ needs.quality.outputs.types }}";
             const bandit = "${{ needs.quality.outputs.bandit }}";
-            const version = "${{ needs.prerelease.outputs.new_release_version || 'n/a' }}";
+            const version = "${{ needs.prerelease.outputs.prerelease_version || 'n/a' }}";
 
             const body = `
             ## 🎯 CI/CD Summary
@@ -170,7 +214,6 @@ jobs:
             - 🔒 Bandit issues: ${bandit}
             - 🧪 Next version (predicted): ${version}
             `;
-
             const {owner, repo} = context.repo;
             const issue_number = context.issue.number;
             const comments = await github.rest.issues.listComments({owner, repo, issue_number});
