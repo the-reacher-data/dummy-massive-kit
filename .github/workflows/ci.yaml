@@ -6,30 +6,21 @@ on:
   pull_request:
     branches: ["main"]
 
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
-  actions: read
-  checks: write
-  id-token: write
-  security-events: write
-  statuses: write
-
 env:
   PYTHON_VERSION: "3.11"
-  COVERAGE_THRESHOLD: "85"  # ✅ Configurable por el usuario
+  COVERAGE_THRESHOLD: "85"
+  SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
 jobs:
   quality:
     runs-on: ubuntu-latest
     outputs:
-      tests: ${{ steps.pytest.outputs.results }}
+      tests: ${{ steps.test-summary.outputs.results }}
       coverage: ${{ steps.pytest.outputs.coverage }}
       lint: ${{ steps.lint.outputs.errors }}
       types: ${{ steps.types.outputs.errors }}
       bandit: ${{ steps.bandit.outputs.issues }}
-      snyk: ${{ steps.snyk.outputs.issues }}
+      snyk: ${{ steps.snyk-process.outputs.snyk_issues }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,165 +28,78 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - uses: astral-sh/setup-uv@v3
 
-      - run: uv sync --group ci
+      - run: uv sync --group ci --extra dev
 
       - id: lint
         run: |
-          if uv run ruff check . > lint.log 2>&1; then
-            echo "errors=0" >> $GITHUB_OUTPUT
-          else
-            ERR=$(grep -c "error" lint.log || echo "1")
-            echo "errors=$ERR" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+          uv run ruff check . --exit-non-zero-on-fix > lint.log 2>&1
+          echo "errors=$(grep -c "error" lint.log || echo 0)" >> $GITHUB_OUTPUT
 
       - id: types
         run: |
-          if uv run mypy src > types.log 2>&1; then
-            echo "errors=0" >> $GITHUB_OUTPUT
-          else
-            ERR=$(grep -c "error:" types.log || echo "1")
-            echo "errors=$ERR" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+          uv run mypy src > types.log 2>&1
+          echo "errors=$(grep -c "error:" types.log || echo 0)" >> $GITHUB_OUTPUT
 
-      - name: 🧪 Install Test Dependencies
-        run: |
-          # Sync dependencies from pyproject.toml (ci + dev groups)
-          uv sync --group ci --extra dev
-          # Verify pytest and coverage are available
-          uv run pytest --version
-          uv run coverage --version
-
-          # Create .coveragerc for consistent coverage
-        shell: bash
       - name: 🧪 Run Tests with Coverage
         id: pytest
-        env:
-          COVERAGE_THRESHOLD: ${{ env.COVERAGE_THRESHOLD }}
         run: |
           export PYTHONPATH=src/
-
           uv run pytest src/tests/ \
             --cov=src \
-            --cov-config=.coveragerc \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing \
             --cov-branch \
-            --junit-xml=pytest.xml \
             --cov-fail-under=${COVERAGE_THRESHOLD} \
-            -v --tb=short \
-            2>&1 | tee pytest.log || exit 1
+            --junit-xml=pytest.xml \
+            -v --tb=short | tee pytest.log
 
-          [ -f coverage.xml ] || { echo "❌ No coverage.xml"; exit 1; }
-          [ -f pytest.xml ] || { echo "❌ No pytest.xml"; exit 1; }
-
-          LINE_RATE=$(grep -oP 'line-rate="\K[^"]+' coverage.xml)
+          LINE_RATE=$(grep -oP 'line-rate="\K[^"]+' coverage.xml | head -1)
           COVERAGE=$(echo "$LINE_RATE * 100" | bc -l | awk '{printf "%.0f", $0}')
-
-          if [[ "$COVERAGE" =~ ^[0-9]+$ ]] && [ "$COVERAGE" -le 100 ]; then
-            echo "✅ Coverage: ${COVERAGE}%"
-          else
-            echo "⚠️ Invalid coverage, defaulting to 0"
-            COVERAGE=0
-          fi
-
-          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
-          echo "results=3/3" >> $GITHUB_OUTPUT  # De pytest.log si necesitas
-        shell: bash
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
 
       - name: 📊 Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}  # Repository secret properly configured
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           fail_ci_if_error: false
-          verbose: true
-        if: always()
-
-      - name: 📦 Upload Test Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports
-          path: |
-            coverage.xml
-            pytest.xml
-            pytest.log
-            .coverage
-            htmlcov/
-          retention-days: 30
         if: always()
 
       - name: 📋 Test Summary
         id: test-summary
         run: |
-          if [ -f pytest.xml ]; then
-            # Parse JUnit XML for test counts (fallback to log if xmlstarlet not available)
-            if command -v xmlstarlet &> /dev/null; then
-              PASSED=$(xmlstarlet sel -t -v "//testcase[count(failure)=0]" pytest.xml 2>/dev/null | wc -l || echo "0")
-              FAILED=$(xmlstarlet sel -t -v "//testcase/failure" pytest.xml 2>/dev/null | wc -l || echo "0")
-              SKIPPED=$(xmlstarlet sel -t -v "//testcase/skipped" pytest.xml 2>/dev/null | wc -l || echo "0")
-            else
-              echo "❌ xmlstarlet not found"
-              exit 1
-            fi
-            TOTAL=$((PASSED + FAILED + SKIPPED))
-          else
-            PASSED=0
-            FAILED=0
-            SKIPPED=0
-            TOTAL=0
-          fi
-
+          sudo apt-get update -qq && sudo apt-get install -y xmlstarlet
+          PASSED=$(xmlstarlet sel -t -v "//testcase[not(failure) and not(error) and not(skipped)]" pytest.xml | wc -l)
+          FAILED=$(xmlstarlet sel -t -v "//testcase[failure or error]" pytest.xml | wc -l)
+          SKIPPED=$(xmlstarlet sel -t -v "//testcase[skipped]" pytest.xml | wc -l)
+          TOTAL=$((PASSED + FAILED + SKIPPED))
           echo "results=${PASSED}/${TOTAL} (${SKIPPED} skipped)" >> $GITHUB_OUTPUT
-          echo "Tests: ${PASSED} passed, ${FAILED} failed, ${SKIPPED} skipped"
-
-          if [ "$FAILED" -gt 0 ]; then
-            echo "❌ ${FAILED} tests failed"
-            exit 1
-          fi
-        shell: bash
 
       - id: bandit
         run: |
-          if uv run bandit -r src -f json -o bandit.json; then
-            echo "issues=0" >> $GITHUB_OUTPUT
-          else
-            COUNT=$(jq '.results | length' bandit.json || echo 1)
-            echo "issues=$COUNT" >> $GITHUB_OUTPUT
-          fi
+          uv run bandit -r src -f json -o bandit.json
+          COUNT=$(jq '.results | length' bandit.json || echo 0)
+          echo "issues=$COUNT" >> $GITHUB_OUTPUT
 
-      - name: Process Snyk Results
-        id: snyk
+      - id: snyk
         uses: snyk/actions/python@master
-        continue-on-error: true
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # Repository secret properly configured
+          SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
         with:
           args: --json-file-output=snyk.json
-      - name: Process Snyk JSON
-        run: |
-          if [ -f snyk.json ]; then
-            COUNT=$(jq '.vulnerabilities | length' snyk.json || echo 0)
-            echo "snyk_issues=$COUNT" >> $GITHUB_OUTPUT
-          else
-            echo "snyk_issues=0" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
 
-      - uses: codecov/codecov-action@v4
-        if: github.event_name == 'pull_request'
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}  # Repository secret properly configured
-          files: ./coverage.xml
-          fail_ci_if_error: false
+      - id: snyk-process
+        run: |
+          COUNT=$(jq '.vulnerabilities | length' snyk.json || echo 0)
+          echo "snyk_issues=$COUNT" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:
           name: ci-artifacts
           path: |
-            pytest.log
+            pytest.xml
             coverage.xml
+            pytest.log
             lint.log
             types.log
             bandit.json
@@ -230,9 +134,6 @@ jobs:
             @semantic-release/git
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-      - run: |
-          echo "Next version (predicted): ${{ steps.semrel.outputs.new_release_version }}"
 
   pr-comment:
     runs-on: ubuntu-latest
@@ -247,17 +148,19 @@ jobs:
             const lint = "${{ needs.quality.outputs.lint }}";
             const types = "${{ needs.quality.outputs.types }}";
             const bandit = "${{ needs.quality.outputs.bandit }}";
-            const snyk = "${{ needs.quality.outputs.snyk_issues }}";
+            const snyk = "${{ needs.quality.outputs.snyk }}";
             const version = "${{ needs.prerelease.outputs.new_release_version || 'n/a' }}";
+
             const body = `
             ## 🎯 CI/CD Summary
-            - **Tests**: ${tests} (coverage ${cov}%)
-            - **Lint errors**: ${lint}
-            - **Type errors**: ${types}
-            - **Bandit issues**: ${bandit}
-            - **Snyk vulnerabilities**: ${snyk}
-            - **Next version (predicted)**: ${version}
+            - ✅ Tests: ${tests} (Coverage: ${cov}%)
+            - 📝 Lint errors: ${lint}
+            - 🔍 Type errors: ${types}
+            - 🔒 Bandit issues: ${bandit}
+            - 🛡️ Snyk vulnerabilities: ${snyk}
+            - 🧪 Next version (predicted): ${version}
             `;
+
             const {owner, repo} = context.repo;
             const issue_number = context.issue.number;
             const comments = await github.rest.issues.listComments({owner, repo, issue_number});
