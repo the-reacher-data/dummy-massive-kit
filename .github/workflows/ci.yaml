@@ -33,13 +33,14 @@ jobs:
       - id: lint
         run: |
           uv run ruff check . --exit-non-zero-on-fix > lint.log 2>&1
-          echo "errors=$(grep -c "error" lint.log || echo 0)" >> $GITHUB_OUTPUT
+          ERRORS=$(grep -c "error" lint.log 2>/dev/null || echo 0)
+          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
 
       - id: types
         run: |
           uv run mypy src > types.log 2>&1
-          echo "errors=$(grep -c "error:" types.log || echo 0)" >> $GITHUB_OUTPUT
-
+          ERRORS=$(grep -c "error:" types.log 2>/dev/null || echo 0)
+          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
       - name: 🧪 Run Tests with Coverage
         id: pytest
         run: |
