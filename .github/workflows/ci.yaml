@@ -62,7 +62,7 @@ jobs:
             --cov-fail-under=${COVERAGE_THRESHOLD} \
             --junit-xml=junit.xml \
             -o junit_family=legacy \
-            -v --tb=short | tee pytest.log
+            -v --tb=short
 
 
       - name: Upload test results to Codecov
@@ -106,7 +106,6 @@ jobs:
           path: |
             junit.xml
             coverage.xml
-            pytest.log
             lint.log
             types.log
             bandit.json
@@ -149,12 +148,14 @@ jobs:
         run: |
           BRANCH="${{ github.head_ref }}"
           BASE=$(python3 - <<'PY'
-            import tomllib
-            with open("pyproject.toml","rb") as f:
-              print(tomllib.load(f)["project"]["version"])
+          import tomllib
+          with open("pyproject.toml","rb") as f:
+            data = tomllib.load(f)
+            print(data["project"]["version"])
           PY
           )
           IFS='.' read -r X Y Z <<< "$BASE"
+
           if [[ "$BRANCH" == feature!/* || "$BRANCH" == breaking/* ]]; then
             X=$((X+1)); Y=0; Z=0
           elif [[ "$BRANCH" == feature/* || "$BRANCH" == multifeature/* ]]; then
@@ -162,9 +163,10 @@ jobs:
           elif [[ "$BRANCH" == fix/* || "$BRANCH" == hotfix/* ]]; then
             Z=$((Z+1))
           elif [[ "$BRANCH" == chore/* ]]; then
-            # no bump; keep X.Y.Z
+            # no bump
             :
           fi
+
           PREDICTED="${X}.${Y}.${Z}"
           DEV_TS="${EPOCHSECONDS:-$(date +%s)}"
           VERSION="${PREDICTED}.dev${DEV_TS}"
