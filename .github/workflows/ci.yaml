@@ -91,13 +91,13 @@ jobs:
           echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
           echo "results=${PASSED}/${TOTAL} (${SKIPPED} skipped)" >> "$GITHUB_OUTPUT"
 
-      - id: bandit
-        name: 🔒 Bandit Security Scanner
-        run: |
-          uv run bandit -r src --exclude src/tests -f json -o bandit.json
-          cat bandit.json
-          COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
-          printf "issues=%s\n" "$COUNT" >> "$GITHUB_OUTPUT"
+      - name: 🔒 Bandit Security Scanner
+        run: uv run bandit -r src --exclude src/tests -f sarif -o bandit.sarif
+
+      - name: 📤 Upload Bandit SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit.sarif
 
 
       - uses: actions/upload-artifact@v4
@@ -108,7 +108,6 @@ jobs:
             coverage.xml
             lint.log
             types.log
-            bandit.json
 
   prerelease:
     name: Pre-release (TestPyPI)
@@ -208,20 +207,25 @@ jobs:
             const bandit = "${{ needs.quality.outputs.bandit }}";
             const version = "${{ needs.prerelease.outputs.prerelease_version || 'n/a' }}";
 
+            const coverageBadge = `![Coverage](https://progress-bar.dev/${cov}/?title=coverage)`;
+
             const body = `
-            ## 🎯 CI/CD Summary
-            - ✅ Tests: ${tests} (Coverage: ${cov}%)
-            - 📝 Lint errors: ${lint}
-            - 🔍 Type errors: ${types}
-            - 🔒 Bandit issues: ${bandit}
-            - 🧪 Next version (predicted): ${version}
+            ## 🎯 CI/CD Summary (Commit: \`${process.env.GITHUB_SHA.substring(0,7)}\`)
+
+            | Category | Result |
+            |----------|--------|
+            | ✅ **Tests** | ${tests} |
+            | 📊 **Coverage** | ${coverageBadge} |
+            | 📝 **Lint errors** | ${lint} |
+            | 🔍 **Type errors** | ${types} |
+            | 🔒 **Bandit issues** | ${bandit} ([See security tab](../../security/code-scanning)) |
+            | 🧪 **Next version** | \`${version}\` |
+
+            ---
+            *Generated automatically by CI/CD pipeline*
             `;
+
             const {owner, repo} = context.repo;
             const issue_number = context.issue.number;
             const comments = await github.rest.issues.listComments({owner, repo, issue_number});
-            const existing = comments.data.find(c => c.body.includes("## 🎯 CI/CD Summary"));
-            if (existing) {
-              await github.rest.issues.updateComment({owner, repo, comment_id: existing.id, body});
-            } else {
-              await github.rest.issues.createComment({owner, repo, issue_number, body});
-            }
+            await github.rest.issues.createComment({owner, repo, issue_number, body});
