@@ -4,8 +4,6 @@ permissions:
   contents: read
   pull-requests: write
 on:
-  push:
-    branches: ["feature/**", "multifeature/**", "fix/**", "hotfix/**", "chore/**", "docs/**"]
   pull_request:
     branches: ["main"]
 
@@ -63,28 +61,33 @@ jobs:
             --cov-report=term-missing \
             --cov-branch \
             --cov-fail-under=${COVERAGE_THRESHOLD} \
-            --junit-xml=pytest.xml \
+            --junit-xml=junit.xml \
+            -o junit_family=legacy \
             -v --tb=short | tee pytest.log
 
           LINE_RATE=$(grep -oP 'line-rate="\K[^"]+' coverage.xml | head -1)
           COVERAGE=$(echo "$LINE_RATE * 100" | bc -l | awk '{printf "%.0f", $0}')
           echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
 
-      - name: 📊 Upload Coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
-          fail_ci_if_error: false
+      - name: 📊 Upload Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: the-reacher-data/dummy-massive-kit
         if: always()
 
       - name: 📋 Test Summary
         id: test-summary
         run: |
           sudo apt-get update -qq && sudo apt-get install -y xmlstarlet
-          PASSED=$(xmlstarlet sel -t -v "//testcase[not(failure) and not(error) and not(skipped)]" pytest.xml | wc -l)
-          FAILED=$(xmlstarlet sel -t -v "//testcase[failure or error]" pytest.xml | wc -l)
-          SKIPPED=$(xmlstarlet sel -t -v "//testcase[skipped]" pytest.xml | wc -l)
+          PASSED=$(xmlstarlet sel -t -v "//testcase[not(failure) and not(error) and not(skipped)]" junit.xml | wc -l)
+          FAILED=$(xmlstarlet sel -t -v "//testcase[failure or error]" junit.xml | wc -l)
+          SKIPPED=$(xmlstarlet sel -t -v "//testcase[skipped]" junit.xml | wc -l)
           TOTAL=$((PASSED + FAILED + SKIPPED))
           echo "results=${PASSED}/${TOTAL} (${SKIPPED} skipped)" >> $GITHUB_OUTPUT
 
@@ -101,7 +104,7 @@ jobs:
         with:
           name: ci-artifacts
           path: |
-            pytest.xml
+            junit.xml
             coverage.xml
             pytest.log
             lint.log
@@ -110,6 +113,9 @@ jobs:
 
   prerelease:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     needs: quality
     outputs:
       new_release_version: ${{ steps.semrel.outputs.new_release_version }}
@@ -141,6 +147,9 @@ jobs:
   pr-comment:
     runs-on: ubuntu-latest
     needs: [quality, prerelease]
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/github-script@v7
