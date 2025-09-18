@@ -48,15 +48,98 @@ jobs:
             exit 1
           fi
 
-      - name: 🧪 Run Tests
+      - name: 🧪 Install Test Dependencies
+        run: |
+          # Sync dependencies from pyproject.toml (ci + dev groups)
+          uv sync --group ci --group dev
+
+          # Verify pytest and coverage are available
+          uv run pytest --version
+          uv run coverage --version
+
+          # Create .coveragerc for consistent coverage
+          cat > .coveragerc << 'EOF'
+        shell: bash
+
+      - name: 🧪 Run Tests with Coverage
         id: pytest
-        uses: pavelzw/pytest-action@v2
-        with:
-          emoji: true
-          verbose: true
-          custom-arguments: "--junit-xml=pytest.xml --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=85 -v --tb=short"
-        env:
-          PYTHONPATH: src/
+        run: |
+          # Set up environment for module discovery
+          export PYTHONPATH=src/
+
+          # Run pytest with full coverage and reporting
+          uv run pytest src/tests/ \
+            --cov=src \
+            --cov-config=.coveragerc \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-branch \
+            --junit-xml=pytest.xml \
+            --cov-fail-under=85 \
+            -v \
+            --tb=short \
+            2>&1 | tee pytest.log || {
+              echo "❌ Pytest failed - see output above"
+              cat pytest.log
+              exit 1
+            }
+
+          # Verify reports were generated
+          if [ ! -f coverage.xml ]; then
+            echo "❌ coverage.xml not generated"
+            ls -la *.xml || true
+            exit 1
+          fi
+
+          if [ ! -f pytest.xml ]; then
+            echo "❌ pytest.xml (JUnit) not generated"
+            ls -la *.xml || true
+            exit 1
+          fi
+
+          # Extract coverage percentage using coverage CLI (most reliable)
+          if uv run coverage report --total 2>/dev/null | tail -1 | grep -q "TOTAL"; then
+            COVERAGE=$(uv run coverage report --total | tail -1 | awk '{print $NF}' | sed 's/%//')
+          else
+            # Fallback: parse the term-missing report from pytest output
+            COVERAGE=$(grep -oP 'TOTAL.*\K\d+%' pytest.log | head -1 | sed 's/%//' || echo "0")
+          fi
+
+          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+          echo "📈 Coverage: ${COVERAGE}%"
+
+          # Extract test results from pytest output (robust parsing)
+          if grep -q "collected" pytest.log; then
+            TESTS_COLLECTED=$(grep -oP 'collected \K\d+' pytest.log | head -1 || echo "0")
+            TESTS_PASSED=$(grep -oP '\d+(?= passed)' pytest.log | tail -1 || echo "0")
+            TESTS_FAILED=$(grep -oP '\d+(?= failed)' pytest.log | tail -1 || echo "0")
+            TESTS_SKIPPED=$(grep -oP '\d+(?= skipped)' pytest.log | tail -1 || echo "0")
+            TOTAL_TESTS=$((TESTS_COLLECTED))
+          else
+            TESTS_COLLECTED=0
+            TESTS_PASSED=0
+            TESTS_FAILED=0
+            TESTS_SKIPPED=0
+            TOTAL_TESTS=0
+          fi
+
+          echo "results=${TESTS_PASSED}/${TOTAL_TESTS}" >> $GITHUB_OUTPUT
+          echo "Tests: ${TESTS_PASSED} passed, ${TESTS_FAILED} failed"
+
+          # Fail if tests failed or coverage below threshold
+          if [ "$TESTS_FAILED" -gt 0 ]; then
+            echo "❌ ${TESTS_FAILED} tests failed"
+            exit 1
+          fi
+
+          if [ $(echo "${COVERAGE} < 85" | bc -l) ]; then
+            echo "❌ Coverage below 85%: ${COVERAGE}%"
+            uv run coverage html  # Generate HTML for debugging
+            exit 1
+          fi
+
+          echo "✅ All tests passed with ${COVERAGE}% coverage!"
+        shell: bash
 
       - name: 📊 Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -67,40 +150,18 @@ jobs:
           verbose: true
         if: always()
 
-      - name: 📈 Extract Coverage Percentage
-        id: coverage
-        run: |
-          if [ -f coverage.xml ]; then
-            COVERAGE=$(python3 -c "
-            import xml.etree.ElementTree as ET
-            try:
-              tree = ET.parse('coverage.xml')
-              root = tree.getroot()
-              packages = root.find('packages')
-              if packages is not None:
-                total_coverage = 0
-                total_files = 0
-                for package in packages.findall('package'):
-                  for file in package.findall('file'):
-                    if 'line-rate' in file.attrib:
-                      total_coverage += float(file.attrib['line-rate']) * 100
-                      total_files += 1
-                if total_files > 0:
-                  print(f'{total_coverage / total_files:.1f}')
-                else:
-                  print('0.0')
-              else:
-                print('0.0')
-            except Exception:
-              print('0.0')
-            ")
-            echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
-            echo "Coverage: ${COVERAGE}%"
-          else
-            echo "coverage=0" >> $GITHUB_OUTPUT
-            echo "⚠️ No coverage.xml found"
-          fi
-        shell: bash
+      - name: 📦 Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            coverage.xml
+            pytest.xml
+            pytest.log
+            .coverage
+            htmlcov/
+          retention-days: 30
+        if: always()
 
       - name: 📋 Test Summary
         id: test-summary
