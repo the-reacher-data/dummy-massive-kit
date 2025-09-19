@@ -133,13 +133,3 @@ def main(
     with open(outputs_path, "a", encoding="utf-8") as f:
         f.write(f"coverage={total_pct}\n")
         f.write(f"failed={failed}\n")
-
-
-if __name__ == "__main__":
-    main(
-        "junit.xml",
-        "coverage.json",
-        85,
-        "pytest_comment.html",
-        os.environ.get("GITHUB_OUTPUT", "/dev/null"),
-    )

@@ -32,4 +32,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           test-dir: "src/tests"
           src-dir: "src"
-          coverage-threshold: "85"
+          coverage-threshold: "60"

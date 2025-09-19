@@ -41,7 +41,6 @@ runs:
       run: |
         set -euo pipefail
         # Install test dependencies as defined in your project (if needed):
-        # uv sync --group ci --extra dev || true
 
         uv run pytest "${{ inputs.test-dir }}" \
           --cov="${{ inputs.src-dir }}" \
