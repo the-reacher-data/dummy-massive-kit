@@ -59,18 +59,14 @@ runs:
 
     - name: Build pytest comment (Markdown)
       id: build
-      shell: python
+      shell: bash
       run: |
-        import os, sys
-        sys.path.insert(0, '${{ github.action_path }}/src')
-        from builder import main
-        main(
-          junit_path='junit.xml',
-          cov_json_path='coverage.json',
-          threshold=int('${{ inputs.coverage-threshold }}'),
-          output_path='pytest_comment.md',
-          outputs_path=os.environ['GITHUB_OUTPUT']
-        )
+        uv run python ${{ github.action_path }}/src/builder.py \
+        --junit junit.xml \
+        --cov coverage.json \
+        --threshold ${{ inputs.coverage-threshold }} \
+        --output pytest_comment.md \
+        --outputs $GITHUB_OUTPUT
 
     - name: Optional upload to Codecov
       if: inputs.codecov-token != ''
