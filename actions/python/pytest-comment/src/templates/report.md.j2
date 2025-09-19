@@ -15,7 +15,7 @@
 | Test | Message |
 |:-----|:--------|
 {% for f in failures -%}
-| `{{ f.nodeid }}` | <details><summary>Show</summary>```python{{ f.message }}```</details> |
+| `{{ f.nodeid }}` | <details><summary>Show</summary> ```python {{ f.message }} ```</details> |
 
 {% endfor %}
 </details>
