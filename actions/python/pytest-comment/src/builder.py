@@ -125,7 +125,7 @@ def render_report(
         [fc for fc in files_cov if fc.percent < threshold], key=lambda fc: fc.percent
     )
 
-    template = env.get_template("pytest_comment.md.j2")
+    template = env.get_template("report.md.j2")
     return template.render(
         coverage=round(coverage, 2),
         threshold=float(threshold),
