@@ -1,13 +1,10 @@
 <!-- massive-devops-pytest -->
 # 🧪 Pytest Report
 
-✅ **{{ passed }}** passed ❌ **{{ failed }}** failed ⏭ **{{ skipped }}** skipped
 
 ![Coverage](https://img.shields.io/badge/Coverage-{{ "%.0f"|format(coverage) }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})
 
-![Tests](https://img.shields.io/badge/Tests-{{ tests }}-blue)
-![Failures](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})
-![Skipped](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
+![Tests](https://img.shields.io/badge/Tests-{{ tests }}-blue)![Failures](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})![Skipped](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
 
 ---
 
