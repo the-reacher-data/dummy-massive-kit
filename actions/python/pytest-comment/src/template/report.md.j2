@@ -1,0 +1,31 @@
+<!-- massivekit-pytest-comment -->
+# 🧪 Pytest Report ![pytest logo](https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg)
+
+✅ **{{ passed }}** passed ❌ **{{ failed }}** failed ⏭ **{{ skipped }}** skipped
+📊 **Coverage:** {{ coverage }}% ![Coverage](https://img.shields.io/badge/Coverage-{{ coverage }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})
+
+---
+
+{% if failures %}
+<details>
+<summary>❌ Failed tests ({{ failures|length }})</summary>
+
+| Test | Message |
+|------|---------|
+{% for f in failures %}
+| `{{ f.nodeid }}` | {{ f.message }} |
+{% endfor %}
+</details>
+{% endif %}
+
+{% if under_files %}
+<details>
+<summary>⚠ Files below coverage threshold ({{ threshold }}%)</summary>
+
+| File | Coverage |
+|------|----------|
+{% for f, pct in under_files %}
+| `{{ f }}` | {{ pct }} % |
+{% endfor %}
+</details>
+{% endif %}

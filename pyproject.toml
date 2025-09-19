@@ -91,10 +91,7 @@ source = ["src/"]
 omit = ["src/tests/*"]
 branch = true
 
-[tool.coverage.report]
-show_missing = true
-skip_covered = true
-fail_under = 85
+
 
 # --- Commitizen ---
 [tool.commitizen]
