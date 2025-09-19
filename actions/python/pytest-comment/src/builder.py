@@ -50,11 +50,11 @@ def parse_junit(path: str) -> tuple[int, int, int, int, list[dict[str, str]]]:
 def parse_coverage_json(path: str) -> tuple[int, list[tuple[str, int]]]:
     """Parse coverage.json and return global % and per-file %."""
     data = json.loads(Path(path).read_text())
-    total_pct = int(round(float(data.get("totals", {}).get("percent_covered", 0.0)) * 100))
+    total_pct = int(round(float(data.get("totals", {}).get("percent_covered", 0.0))))
 
     file_pcts: list[tuple[str, int]] = []
     for file, info in data.get("files", {}).items():
-        pct = int(round(float(info.get("summary", {}).get("percent_covered", 0.0)) * 100))
+        pct = int(round(float(info.get("summary", {}).get("percent_covered", 0.0))))
         file_pcts.append((file, pct))
 
     return total_pct, file_pcts
