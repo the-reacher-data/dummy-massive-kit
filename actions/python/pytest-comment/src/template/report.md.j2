@@ -4,6 +4,10 @@
 ✅ **{{ passed }}** passed ❌ **{{ failed }}** failed ⏭ **{{ skipped }}** skipped
 📊 **Coverage:** {{ coverage }}% ![Coverage](https://img.shields.io/badge/Coverage-{{ coverage }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})
 
+![Tests Badge](https://img.shields.io/badge/Tests-{{ tests }}-blue)
+![Failures Badge](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})
+![Skipped Badge](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
+
 ---
 
 {% if failures %}

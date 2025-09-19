@@ -1,5 +1,6 @@
 name: "Pytest Comment"
 description: "Run pytest with coverage and post an enterprise PR comment (logo, badges, tables)."
+
 inputs:
   test-dir:
     description: "Directory with tests"
@@ -19,6 +20,7 @@ inputs:
   codecov-token:
     description: "Codecov token (optional) to upload coverage.xml"
     required: false
+
 outputs:
   coverage:
     description: "Global coverage percentage"
@@ -26,6 +28,7 @@ outputs:
   failed:
     description: "Number of failed tests"
     value: ${{ steps.build.outputs.failed }}
+
 runs:
   using: "composite"
   steps:
@@ -38,10 +41,10 @@ runs:
     - name: Run pytest with coverage
       id: pytest
       shell: bash
+      continue-on-error: true
       run: |
         set -euo pipefail
-        # Install test dependencies as defined in your project (if needed):
-
+        uv pip install jinja2
         uv run pytest "${{ inputs.test-dir }}" \
           --cov="${{ inputs.src-dir }}" \
           --cov-report=term-missing \
@@ -49,9 +52,9 @@ runs:
           --cov-report=xml:coverage.xml \
           --junit-xml=junit.xml \
           -o junit_family=legacy \
-          -v --tb=short
+          -v --tb=short || true
 
-    - name: Build pytest comment (HTML)
+    - name: Build pytest comment (Markdown)
       id: build
       shell: python
       run: |
@@ -62,7 +65,7 @@ runs:
           junit_path='junit.xml',
           cov_json_path='coverage.json',
           threshold=int('${{ inputs.coverage-threshold }}'),
-          output_path='pytest_comment.html',
+          output_path='pytest_comment.md',
           outputs_path=os.environ['GITHUB_OUTPUT']
         )
 
@@ -78,7 +81,7 @@ runs:
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
       env:
-        BODY_FILE: pytest_comment.html
+        BODY_FILE: pytest_comment.md
       with:
         github-token: ${{ inputs.github-token }}
         script: |
@@ -98,3 +101,16 @@ runs:
           } else {
             await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
           }
+
+    - name: Fail if below threshold or tests failed
+      if: always()
+      shell: python
+      run: |
+        import sys, os
+        sys.path.insert(0, '${{ github.action_path }}/src')
+        from builder import check_exit
+        check_exit(
+          junit_path='junit.xml',
+          cov_json_path='coverage.json',
+          threshold=int('${{ inputs.coverage-threshold }}')
+        )
