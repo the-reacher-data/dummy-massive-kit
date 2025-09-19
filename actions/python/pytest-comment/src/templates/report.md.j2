@@ -1,36 +1,36 @@
-<!-- massivekit-pytest-comment -->
-# 🧪 Pytest Report ![pytest logo](https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg)
+<!-- massive-devops-pytest -->
+# 🧪 Pytest Report
 
 ✅ **{{ passed }}** passed ❌ **{{ failed }}** failed ⏭ **{{ skipped }}** skipped
 
-![Coverage](https://img.shields.io/badge/Coverage-{{ coverage }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})
+![Coverage](https://img.shields.io/badge/Coverage-{{ "%.0f"|format(coverage) }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})
 
-![Tests Badge](https://img.shields.io/badge/Tests-{{ tests }}-blue)
-![Failures Badge](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})
-![Skipped Badge](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
+![Tests](https://img.shields.io/badge/Tests-{{ tests }}-blue)
+![Failures](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})
+![Skipped](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
 
 ---
 
-{% if failures %}
+{% if failures and failures|length > 0 %}
 <details>
 <summary>❌ Failed tests ({{ failures|length }})</summary>
 
 | Test | Message |
 |------|---------|
 {% for f in failures %}
-| `{{ f.nodeid }}` | {{ f.message }} |
+| `{{ f.nodeid }}` | {{ f.message | replace("\n", " ") }} |
 {% endfor %}
 </details>
 {% endif %}
 
-{% if under_files %}
+{% if under_files and under_files|length > 0 %}
 <details>
 <summary>⚠ Files below coverage threshold ({{ threshold }}%)</summary>
 
-| File | Coverage |
-|------|----------|
-{% for f, pct in under_files %}
-| `{{ f }}` | {{ pct }} % |
+| File | Coverage | Missing lines |
+|------|----------|---------------|
+{% for fc in under_files %}
+| `{{ fc.path }}` | {{ "%.2f"|format(fc.percent) }} % | {{ fc.missing_lines | join(", ") }} |
 {% endfor %}
 </details>
 {% endif %}
