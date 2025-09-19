@@ -20,7 +20,6 @@ from pathlib import Path
 
 # External logo
 PYTEST_LOGO_URL = "https://docs.pytest.org/en/latest/_static/pytest1.png"
-PROGRESS_BADGE = "https://progress-bar.dev/{pct}/?title=coverage"
 
 
 def parse_junit(path: str) -> tuple[int, int, int, int, list[dict[str, str]]]:
@@ -61,6 +60,17 @@ def parse_coverage_json(path: str) -> tuple[int, list[tuple[str, int]]]:
     return total_pct, file_pcts
 
 
+def coverage_badge(coverage: int) -> str:
+    """Return shields.io badge URL depending on coverage %."""
+    if coverage >= 90:
+        color = "brightgreen"
+    elif coverage >= 75:
+        color = "yellow"
+    else:
+        color = "red"
+    return f"https://img.shields.io/badge/coverage-{coverage}%25-{color}"
+
+
 def build_comment_html(
     passed: int,
     failed: int,
@@ -70,9 +80,9 @@ def build_comment_html(
     under_files: list[tuple[str, int]],
     threshold: int,
 ) -> str:
-    """Build enterprise HTML comment body."""
-    logo = f'<img src="{PYTEST_LOGO_URL}" width="40" style="vertical-align:middle;"/>'
-    badge = f'<img src="{PROGRESS_BADGE.format(pct=coverage_pct)}" style="vertical-align:middle;"/>'
+    """Build HTML comment body."""
+    logo = f'<img src="{PYTEST_LOGO_URL}" width="50" style="vertical-align:middle;"/>'
+    badge = f'<img src="{coverage_badge(coverage_pct)}" style="vertical-align:middle;"/>'
     summary = (
         f"✅ <b>{passed}</b> passed ❌ <b>{failed}</b> failed "
         f"⏭ <b>{skipped}</b> skipped — <b>{total}</b> total"
@@ -96,9 +106,9 @@ def build_comment_html(
 </details>
 """
 
-    return f"""## 🧪 Pytest Report
+    return f"""## {logo} Pytest Report
 
-{logo} {badge}
+{badge}
 {summary}
 
 {under_section}
