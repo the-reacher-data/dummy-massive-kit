@@ -1,0 +1,101 @@
+name: "Pytest Comment"
+description: "Run pytest with coverage and post an enterprise PR comment (logo, badges, tables)."
+inputs:
+  test-dir:
+    description: "Directory with tests"
+    required: false
+    default: "src/tests"
+  src-dir:
+    description: "Source folder measured by coverage"
+    required: false
+    default: "src"
+  coverage-threshold:
+    description: "Minimum coverage percentage to consider healthy"
+    required: false
+    default: "85"
+  github-token:
+    description: "GitHub token for posting PR comments"
+    required: true
+  codecov-token:
+    description: "Codecov token (optional) to upload coverage.xml"
+    required: false
+outputs:
+  coverage:
+    description: "Global coverage percentage"
+    value: ${{ steps.build.outputs.coverage }}
+  failed:
+    description: "Number of failed tests"
+    value: ${{ steps.build.outputs.failed }}
+runs:
+  using: "composite"
+  steps:
+    - name: Ensure Python & uv
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - uses: astral-sh/setup-uv@v3
+
+    - name: Run pytest with coverage
+      id: pytest
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Install test dependencies as defined in your project (if needed):
+        # uv sync --group ci --extra dev || true
+
+        uv run pytest "${{ inputs.test-dir }}" \
+          --cov="${{ inputs.src-dir }}" \
+          --cov-report=term-missing \
+          --cov-report=json:coverage.json \
+          --cov-report=xml:coverage.xml \
+          --junit-xml=junit.xml \
+          -o junit_family=legacy \
+          -v --tb=short
+
+    - name: Build pytest comment (HTML)
+      id: build
+      shell: python
+      run: |
+        import os, sys
+        sys.path.insert(0, '${{ github.action_path }}/src')
+        from builder import main
+        main(
+          junit_path='junit.xml',
+          cov_json_path='coverage.json',
+          threshold=int('${{ inputs.coverage-threshold }}'),
+          output_path='pytest_comment.html',
+          outputs_path=os.environ['GITHUB_OUTPUT']
+        )
+
+    - name: Optional upload to Codecov
+      if: inputs.codecov-token != ''
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ./coverage.xml
+        fail_ci_if_error: false
+
+    - name: Post / update PR comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      env:
+        BODY_FILE: pytest_comment.html
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+          const body = fs.readFileSync(process.env.BODY_FILE, 'utf8');
+          const tag = '<!-- massive-devops-pytest -->';
+          const full = tag + '\n' + body;
+
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+
+          const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+          const existing = comments.find(c => c.body && c.body.includes(tag));
+
+          if (existing) {
+            await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: full });
+          } else {
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
+          }
