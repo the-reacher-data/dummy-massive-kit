@@ -20,8 +20,3 @@ class TestApi:
         """Test the sum static method with large integers to verify no overflow."""
         large_sum = 999999999999999 + 1
         assert Dummy.sum(999999999999999, 1) == large_sum
-
-    def test_sum_large(self) -> None:
-        """Test the rest failed"""
-        large_sum = 1
-        assert Dummy.sum(999999999999999, 1) == large_sum
