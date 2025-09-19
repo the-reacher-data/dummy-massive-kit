@@ -12,16 +12,11 @@
 <details>
 <summary>❌ Failed tests ({{ failures|length }})</summary>
 
-{% if failures and failures|length > 0 %}
-<details>
-<summary>❌ Failed tests ({{ failures|length }})</summary>
-
 | Test | Message |
 |:-----|:--------|
 {% for f in failures -%}
-| `{{ f.nodeid }}` | ```python
-{{ f.message }}
-``` |
+| `{{ f.nodeid }}` | <details><summary>Show</summary>```python{{ f.message }}```</details> |
+
 {% endfor %}
 </details>
 {% endif %}
