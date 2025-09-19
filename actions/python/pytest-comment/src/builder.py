@@ -82,3 +82,21 @@ def check_exit(junit_path, cov_json_path, threshold):
 
     if junit_data["failed"] > 0 or coverage < threshold:
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--junit", required=True)
+    parser.add_argument("--cov", required=True)
+    parser.add_argument("--threshold", type=int, required=True)
+    parser.add_argument("--output")
+    parser.add_argument("--outputs")
+    parser.add_argument("--check-exit", action="store_true")
+    args = parser.parse_args()
+
+    if args.check - exit:
+        check_exit(args.junit, args.cov, args.threshold)
+    else:
+        main(args.junit, args.cov, args.threshold, args.output, args.outputs)

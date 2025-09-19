@@ -103,13 +103,10 @@ runs:
 
     - name: Fail if below threshold or tests failed
       if: always()
-      shell: python
+      shell: bash
       run: |
-        import sys, os
-        sys.path.insert(0, '${{ github.action_path }}/src')
-        from builder import check_exit
-        check_exit(
-          junit_path='junit.xml',
-          cov_json_path='coverage.json',
-          threshold=int('${{ inputs.coverage-threshold }}')
-        )
+        uv run python ${{ github.action_path }}/src/builder.py \
+        --check-exit \
+        --junit junit.xml \
+        --cov coverage.json \
+        --threshold ${{ inputs.coverage-threshold }}
