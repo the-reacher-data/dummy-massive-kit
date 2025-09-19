@@ -49,7 +49,6 @@ def parse_junit(junit_path: str) -> dict[str, Any]:
     tree = ET.parse(junit_path)
     root = tree.getroot()
 
-    # Normaliza a una lista de <testsuite>
     suites = _get_test_suites(root)
 
     test_stats, failed_tests = _parse_test_suites(suites)
@@ -184,6 +183,17 @@ def render_report(
         [fc for fc in files_cov if fc.percent < threshold], key=lambda fc: fc.percent
     )
 
+    problems = []
+    if junit_data["failed"] > 0:
+        problems.append(f"❌ {junit_data['failed']} tests failed")
+    if coverage < threshold:
+        problems.append(f"⚠️ Coverage below threshold ({coverage:.2f}% < {threshold}%)")
+
+    if not problems:
+        status_msg = "✅ All tests passed and coverage OK"
+    else:
+        status_msg = " • ".join(problems)
+
     template = env.get_template("report.md.j2")
     return template.render(
         coverage=round(coverage, 2),
@@ -194,15 +204,12 @@ def render_report(
         passed=junit_data["passed"],
         failed=junit_data["failed"],
         skipped=junit_data["skipped"],
+        status_msg=status_msg,
     )
 
 
-# ---------------------------
-# Entradas/Salidas GH Actions
-# ---------------------------
-
-
 def write_outputs(outputs_path: str, coverage: float, failed: int) -> None:
+    """Escribe outputs para GitHub Actions."""
     if not outputs_path:
         return
     with open(outputs_path, "a", encoding="utf-8") as f:
@@ -213,6 +220,7 @@ def write_outputs(outputs_path: str, coverage: float, failed: int) -> None:
 def main(
     junit_path: str, cov_json_path: str, threshold: float, output_path: str, outputs_path: str
 ) -> None:
+    """Función principal: parsea, renderiza y escribe outputs."""
     coverage, files_cov = parse_coverage_json(cov_json_path)
     junit_data = parse_junit(junit_path)
 

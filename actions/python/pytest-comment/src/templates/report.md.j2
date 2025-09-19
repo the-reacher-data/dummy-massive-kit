@@ -6,6 +6,9 @@
 
 ![Tests](https://img.shields.io/badge/Tests-{{ tests }}-blue)![Failures](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})![Skipped](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
 
+
+**{{ status_msg }}**
+
 ---
 
 {% if failures and failures|length > 0 %}
