@@ -1,5 +1,5 @@
 <!-- massive-devops-pytest -->
-# <img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="40" /> Pytest Report
+# <img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="50" /> Pytest Report
 
 
 ![Coverage](https://img.shields.io/badge/Coverage-{{ "%.0f"|format(coverage) }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})
@@ -12,10 +12,16 @@
 <details>
 <summary>❌ Failed tests ({{ failures|length }})</summary>
 
+{% if failures and failures|length > 0 %}
+<details>
+<summary>❌ Failed tests ({{ failures|length }})</summary>
+
 | Test | Message |
 |:-----|:--------|
 {% for f in failures -%}
-| `{{ f.nodeid }}` | {{ f.message | replace("\n", " ") }} |
+| `{{ f.nodeid }}` | ```python
+{{ f.message }}
+``` |
 {% endfor %}
 </details>
 {% endif %}
