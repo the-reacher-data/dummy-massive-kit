@@ -61,7 +61,7 @@ def main(junit_path, cov_json_path, threshold, output_path, outputs_path):
     under_files = [(f, pct) for f, pct in file_cov if pct < threshold]
 
     env = Environment(loader=FileSystemLoader("src/templates"))
-    template = env.get_template("pytest_comment.md.j2")
+    template = env.get_template("report.md.j2")
 
     body = template.render(
         coverage=coverage, threshold=threshold, under_files=under_files, **junit_data
