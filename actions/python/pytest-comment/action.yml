@@ -57,7 +57,7 @@ runs:
           -o junit_family=legacy \
           -v --tb=short || true
 
-    - name: Build pytest comment (Markdown)
+    - name: Build pytest comment (Markdown) Bash
       id: build
       shell: bash
       run: |
