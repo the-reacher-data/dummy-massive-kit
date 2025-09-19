@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument("--check-exit", action="store_true")
     args = parser.parse_args()
 
-    if args.check - exit:
+    if args.check_exit:
         check_exit(args.junit, args.cov, args.threshold)
     else:
         main(args.junit, args.cov, args.threshold, args.output, args.outputs)
