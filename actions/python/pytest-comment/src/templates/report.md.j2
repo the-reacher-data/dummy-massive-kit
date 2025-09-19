@@ -1,5 +1,5 @@
 <!-- massive-devops-pytest -->
-# 🧪 Pytest Report
+# <img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="20" /> Pytest Report
 
 
 ![Coverage](https://img.shields.io/badge/Coverage-{{ "%.0f"|format(coverage) }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})
@@ -14,20 +14,20 @@
 
 | Test | Message |
 |------|---------|
-{% for f in failures %}
+{%- for f in failures %}
 | `{{ f.nodeid }}` | {{ f.message | replace("\n", " ") }} |
-{% endfor %}
+{%- endfor %}
 </details>
 {% endif %}
 
 {% if under_files and under_files|length > 0 %}
 <details>
-<summary>⚠ Files below coverage threshold ({{ threshold }}%)</summary>
+<summary>⚠ Files below coverage threshold ({{ "%.1f"|format(threshold) }}%)</summary>
 
 | File | Coverage | Missing lines |
 |------|----------|---------------|
-{% for fc in under_files %}
-| `{{ fc.path }}` | {{ "%.2f"|format(fc.percent) }} % | {{ fc.missing_lines | join(", ") }} |
-{% endfor %}
+{%- for fc in under_files %}
+| `{{ fc.path }}` | {{ "%.2f"|format(fc.percent) }}% | {{ (fc.missing_lines | join(", ")) if fc.missing_lines else "—" }} |
+{%- endfor %}
 </details>
 {% endif %}

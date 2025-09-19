@@ -50,41 +50,96 @@ def parse_junit(junit_path: str) -> dict[str, Any]:
     root = tree.getroot()
 
     # Normaliza a una lista de <testsuite>
-    if root.tag == "testsuite":
-        suites = [root]
-    else:
-        suites = list(root.findall("testsuite"))
+    suites = _get_test_suites(root)
 
+    test_stats, failed_tests = _parse_test_suites(suites)
+
+    failed = test_stats["failures"] + test_stats["errors"]
+    passed = test_stats["tests"] - failed - test_stats["skipped"]
+
+    return {
+        "tests": test_stats["tests"],
+        "passed": max(passed, 0),
+        "failed": failed,
+        "skipped": test_stats["skipped"],
+        "failures": failed_tests,
+    }
+
+
+def _get_test_suites(root: ET.Element) -> list[ET.Element]:
+    """Extrae lista de suites desde la raíz del XML."""
+    if root.tag == "testsuite":
+        return [root]
+    else:
+        return list(root.findall("testsuite"))
+
+
+def _parse_test_suites(suites: list[ET.Element]) -> tuple[dict[str, int], list[FailedTest]]:
+    """Parsea estadísticas y testcases fallidos de todas las suites."""
     tests = failures = errors = skipped = 0
     failed_tests: list[FailedTest] = []
 
     for suite in suites:
-        tests += int(suite.attrib.get("tests", 0))
-        failures += int(suite.attrib.get("failures", 0))
-        errors += int(suite.attrib.get("errors", 0))
-        skipped += int(suite.attrib.get("skipped", 0))
+        suite_stats = _parse_suite_stats(suite)
+        tests += suite_stats["tests"]
+        failures += suite_stats["failures"]
+        errors += suite_stats["errors"]
+        skipped += suite_stats["skipped"]
 
-        for case in suite.iter("testcase"):
-            # Si hay <failure> o <error>, lo añadimos al detalle
-            for node in list(case.findall("failure")) + list(case.findall("error")):
-                file_ = case.attrib.get("file") or ""
-                classname = case.attrib.get("classname") or ""
-                name = case.attrib.get("name") or ""
-                nodeid = f"{file_}::{name}" if file_ else f"{classname}::{name}"
-                message = (node.attrib.get("message") or "").strip()
-                if not message and node.text:
-                    message = node.text.strip()
-                failed_tests.append(FailedTest(nodeid=nodeid, message=message))
+        suite_failures = _parse_suite_testcases(suite)
+        failed_tests.extend(suite_failures)
 
-    failed = failures + errors
-    passed = tests - failed - skipped
     return {
         "tests": tests,
-        "passed": max(passed, 0),
-        "failed": failed,
+        "failures": failures,
+        "errors": errors,
         "skipped": skipped,
-        "failures": failed_tests,
+    }, failed_tests
+
+
+def _parse_suite_stats(suite: ET.Element) -> dict[str, int]:
+    """Extrae estadísticas de una suite individual."""
+    return {
+        "tests": int(suite.attrib.get("tests", 0)),
+        "failures": int(suite.attrib.get("failures", 0)),
+        "errors": int(suite.attrib.get("errors", 0)),
+        "skipped": int(suite.attrib.get("skipped", 0)),
     }
+
+
+def _parse_suite_testcases(suite: ET.Element) -> list[FailedTest]:
+    """Extrae testcases fallidos de una suite."""
+    failed_tests: list[FailedTest] = []
+
+    for case in suite.iter("testcase"):
+        failures = _extract_test_failures(case)
+        failed_tests.extend(failures)
+
+    return failed_tests
+
+
+def _extract_test_failures(case: ET.Element) -> list[FailedTest]:
+    """Extrae fallos de un testcase individual."""
+    failures: list[FailedTest] = []
+
+    for node in list(case.findall("failure")) + list(case.findall("error")):
+        file_ = case.attrib.get("file") or ""
+        classname = case.attrib.get("classname") or ""
+        name = case.attrib.get("name") or ""
+        nodeid = f"{file_}::{name}" if file_ else f"{classname}::{name}"
+        message = _extract_failure_message(node)
+
+        failures.append(FailedTest(nodeid=nodeid, message=message))
+
+    return failures
+
+
+def _extract_failure_message(node: ET.Element) -> str:
+    """Extrae el mensaje de error de un nodo de fallo."""
+    message = (node.attrib.get("message") or "").strip()
+    if not message and node.text:
+        message = node.text.strip()
+    return message
 
 
 def parse_coverage_json(cov_json_path: str) -> tuple[float, list[FileCoverage]]:
@@ -118,9 +173,13 @@ def render_report(
 ) -> str:
     base_dir = os.path.dirname(__file__)
     template_dir = os.path.join(base_dir, "templates")
-    env = Environment(loader=FileSystemLoader(template_dir), autoescape=False)
+    env = Environment(
+        loader=FileSystemLoader(template_dir),
+        autoescape=False,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
 
-    # Ficheros por debajo del umbral, ordenados ascendentemente
     under_files = sorted(
         [fc for fc in files_cov if fc.percent < threshold], key=lambda fc: fc.percent
     )
