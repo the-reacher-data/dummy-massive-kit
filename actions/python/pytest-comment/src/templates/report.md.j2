@@ -1,13 +1,11 @@
 <!-- massive-devops-pytest -->
 <img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="80" />
-# Pytest Report
 
----
 ## 📊 Summary
 
-![Coverage](https://img.shields.io/badge/Coverage-{{ "%.0f"|format(coverage) }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})![Tests](https://img.shields.io/badge/Tests-{{ tests }}-blue)
+![Coverage](https://img.shields.io/badge/Coverage-{{ "%.0f"|format(coverage) }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})![TotalTests](https://img.shields.io/badge/Tests-{{ tests }}-blue)
 
-![Failures](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})![Skipped](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
+![Passed](https://img.shields.io/badge/Passed-{{ passed }}-brightgreen)![Failures](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})![Skipped](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
 
 
 **{{ status_msg }}**
