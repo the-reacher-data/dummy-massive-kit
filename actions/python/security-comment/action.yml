@@ -56,7 +56,7 @@ runs:
       run: |
         uv run python "${{ github.action_path }}/src/builder.py" \
           --input bandit.json \
-          --template "${{ github.action_path }}/templates/report.md.j2" \
+          --template "${{ github.action_path }}/src/templates/report.md.j2" \
           --output security_comment.md \
           --fail-on "${{ inputs.fail-on }}"
         COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
