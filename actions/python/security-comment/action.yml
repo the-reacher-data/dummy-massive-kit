@@ -1,0 +1,91 @@
+name: massive-security
+description: |
+  Run Bandit security analysis, generate Markdown report
+  and publish/update PR comment.
+
+inputs:
+  src-dir:
+    description: "Source folder to scan"
+    required: false
+    default: "src"
+
+  github-token:
+    description: "GITHUB_TOKEN for posting PR comments"
+    required: true
+
+  fail-on:
+    description: "Severity threshold for failing the action (none|low|medium|high)"
+    required: false
+    default: "none"
+
+  comment-mode:
+    description: "update|create — update existing comment or always create new one"
+    required: false
+    default: update
+
+outputs:
+  issues:
+    description: "Number of Bandit issues found"
+    value: ${{ steps.report.outputs.issues }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - uses: astral-sh/setup-uv@v3
+
+    - name: 📦 Install deps
+      shell: bash
+      run: |
+        uv pip install bandit jinja2 tomlkit markupsafe
+
+    - name: 🔒 Run Bandit
+      id: bandit
+      shell: bash
+      run: |
+        uv run bandit -r ${{ inputs.src-dir }} -f json -o bandit.json || true
+        COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
+        echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
+
+    - name: 📝 Render Markdown report
+      id: report
+      shell: bash
+      run: |
+        uv run python "${{ github.action_path }}/src/builder.py" \
+          --input bandit.json \
+          --template "${{ github.action_path }}/templates/report.md.j2" \
+          --output security_comment.md \
+          --fail-on "${{ inputs.fail-on }}"
+        COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
+        echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
+        echo "path=security_comment.md" >> "$GITHUB_OUTPUT"
+
+    - name: 💬 Post PR comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+          const body = fs.readFileSync('${{ steps.report.outputs.path }}','utf8');
+          const marker = '<!-- massivekit-security -->';
+          const fullBody = marker + '\n' + body;
+
+          const {owner, repo} = context.repo;
+          const issue_number = context.issue.number;
+
+          const mode = '${{ inputs.comment-mode }}'.toLowerCase();
+          if (mode === 'create') {
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: fullBody });
+          } else {
+            const {data: comments} = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: fullBody });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body: fullBody });
+            }
+          }

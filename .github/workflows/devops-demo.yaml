@@ -33,3 +33,9 @@ jobs:
           test-dir: "src/tests"
           src-dir: "src"
           coverage-threshold: "60"
+
+      - name: Security Comment
+        uses: ./actions/python/security-comment
+        with:
+          src-dir: src
+          github-token: ${{ secrets.GITHUB_TOKEN }}
