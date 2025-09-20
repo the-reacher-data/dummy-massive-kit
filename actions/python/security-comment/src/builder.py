@@ -28,7 +28,12 @@ def filter_failures(issues, fail_on: str):
 
 
 def render(issues, template_dir, template_name, output):
-    env = Environment(loader=FileSystemLoader(template_dir))
+    env = Environment(
+        loader=FileSystemLoader(template_dir),
+        autoescape=False,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
     tmpl = env.get_template(template_name)
     markdown = tmpl.render(count=len(issues), issues=issues)
     pathlib.Path(output).write_text(markdown)

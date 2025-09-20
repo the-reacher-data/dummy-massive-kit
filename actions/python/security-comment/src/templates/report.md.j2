@@ -9,13 +9,14 @@
 <summary>⚠️ Details of findings ({{ count }})</summary>
 
 | File | Line | Severity | Confidence | Test ID | Message |
-|:-----|:-----|:---------|:-----------|:--------|:--------|
-{% for i in issues[:20] %}
+|-----:|-----:|:--------:|:----------:|:-------:|:--------|
+{% for i in issues[:50] -%}
 | `{{ i.filename }}` | {{ i.line_number }} | {{ i.issue_severity }} | {{ i.issue_confidence }} | {{ i.test_id }} | {{ i.issue_text }} |
 {% endfor %}
-{% if issues|length > 20 %}
-... and {{ issues|length - 20 }} more
+{% if issues|length > 50 %}
+… and **{{ issues|length - 50 }}** more
 {% endif %}
+
 </details>
 {% else %}
 ✅ No security issues detected by Bandit.
