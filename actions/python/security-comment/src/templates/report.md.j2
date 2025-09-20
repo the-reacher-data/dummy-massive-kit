@@ -1,5 +1,5 @@
 <!-- massivekit-security -->
-# <img src="https://raw.githubusercontent.com/PyCQA/bandit/main/docs/images/bandit_logo.png" alt="Bandit Logo" width="120"/> Bandit Security Report
+# <img src="https://raw.githubusercontent.com/pycqa/bandit/main/logo/logotype-sm.png" alt="Bandit Logo" width="80"/> Bandit Security Report
 
 
 **Total issues found:** {{ count }}
@@ -9,7 +9,7 @@
 <summary>⚠️ Details of findings ({{ count }})</summary>
 
 | File | Line | Severity | Confidence | Test ID | Message |
-|------|------|----------|------------|---------|---------|
+|:-----|:-----|:---------|:-----------|:--------|:--------|
 {% for i in issues[:20] %}
 | `{{ i.filename }}` | {{ i.line_number }} | {{ i.issue_severity }} | {{ i.issue_confidence }} | {{ i.test_id }} | {{ i.issue_text }} |
 {% endfor %}
