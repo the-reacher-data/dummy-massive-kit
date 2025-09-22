@@ -29,14 +29,17 @@ runs:
       env:
         SEMR_BRANCH: ${{ github.head_ref }}
       run: |
-        uv run semantic-release changelog --noop > /dev/null || true
+        uv run semantic-release changelog > /dev/null || true
         awk '/^## /{i++}i==1' CHANGELOG.md > raw_changelog.md
+        cat raw_changelog.md
     
     - name: Get next version
       shell: bash
       env:
         SEMR_BRANCH: ${{ github.head_ref }}
-      run: uv run semantic-release version --print --noop > next_version.txt
+      run: |
+        uv run semantic-release version > next_version.txt
+        cat next_version.txt
 
     - name: Publish pre-release (noop in PR)
       if: github.event_name == 'pull_request'
