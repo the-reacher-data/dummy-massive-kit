@@ -38,6 +38,7 @@ runs:
       run: semantic-release version --print > next_version.txt
 
     - name: Publish pre-release
+      shell: bash
       env:
         PYPI_TOKEN: ${{ inputs.pypi-token }}
       run: |
