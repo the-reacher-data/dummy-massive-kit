@@ -108,6 +108,8 @@ changelog_file = "CHANGELOG.md"
 build_command = "uv build"
 upload_to_pypi = true
 upload_to_release = true
+upload_to_pypi = true
+repository = "pypi" 
 version_toml = ["pyproject.toml:project.version"]
 
 [tool.semantic_release.branches.main]
