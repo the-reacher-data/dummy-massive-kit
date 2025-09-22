@@ -1,14 +1,3 @@
-#!/usr/bin/env python3
-# type: ignore
-"""
-Generate Bandit markdown report for GitHub Actions.
-
-- Reads bandit.json (Bandit analysis results)
-- Renders a Jinja2 template provided via --template
-- Writes outputs for GitHub Actions
-- Supports --fail-on to decide when to exit 1
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -19,9 +8,8 @@ from dataclasses import dataclass
 
 from jinja2 import Environment, FileSystemLoader
 
-# ---------------------------
-# Models
-# ---------------------------
+# Severity ranking for thresholds
+SEVERITY_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3}
 
 
 @dataclass
@@ -35,29 +23,25 @@ class BanditIssue:
     issue_text: str
 
 
-# Severity ranking for threshold
-SEVERITY_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3}
-
-
 # ---------------------------
 # Parsing
 # ---------------------------
 
 
 def load_bandit(path: str) -> list[BanditIssue]:
-    """Load bandit.json and return list of issues."""
+    """Load bandit.json and return list of BanditIssue objects."""
     data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     issues: list[BanditIssue] = []
     for i in data.get("results", []):
         issues.append(
             BanditIssue(
                 filename=i.get("filename", ""),
-                line_number=i.get("line_number", 0),
-                severity=i.get("issue_severity", "LOW"),
-                confidence=i.get("issue_confidence", "LOW"),
+                line_number=int(i.get("line_number", 0) or 0),
+                severity=str(i.get("issue_severity", "LOW")),
+                confidence=str(i.get("issue_confidence", "LOW")),
                 test_id=i.get("test_id", ""),
                 test_name=i.get("test_name", ""),
-                issue_text=i.get("issue_text", "").strip(),
+                issue_text=(i.get("issue_text", "") or "").strip(),
             )
         )
     return issues
@@ -80,14 +64,15 @@ def filter_failures(issues: list[BanditIssue], fail_on: str) -> bool:
 
 
 def render(issues: list[BanditIssue], template_path: str, output: str) -> None:
-    """Render report from template and write markdown file."""
+    """Render report from Jinja2 template and write markdown file."""
+    tmpl_path = pathlib.Path(template_path)
     env = Environment(
-        loader=FileSystemLoader(str(pathlib.Path(template_path).parent)),
+        loader=FileSystemLoader(str(tmpl_path.parent)),
         autoescape=False,
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    template = env.get_template(pathlib.Path(template_path).name)
+    template = env.get_template(tmpl_path.name)
     markdown = template.render(count=len(issues), issues=issues)
     pathlib.Path(output).write_text(markdown, encoding="utf-8")
 
@@ -97,13 +82,12 @@ def render(issues: list[BanditIssue], template_path: str, output: str) -> None:
 # ---------------------------
 
 
-def write_outputs(outputs_path: str | None, issues: list[BanditIssue], exit_code: int) -> None:
-    """Write GitHub Action outputs."""
+def write_outputs(outputs_path: str | None, issues: list[BanditIssue]) -> None:
+    """Write GitHub Actions outputs (issue count)."""
     if not outputs_path:
         return
     with open(outputs_path, "a", encoding="utf-8") as f:
         f.write(f"bandit_issues={len(issues)}\n")
-        f.write(f"bandit_exit={exit_code}\n")
 
 
 # ---------------------------
@@ -114,8 +98,8 @@ def write_outputs(outputs_path: str | None, issues: list[BanditIssue], exit_code
 def cli() -> None:
     parser = argparse.ArgumentParser(description="Build Bandit markdown report for GitHub Actions.")
     parser.add_argument("--input", default="bandit.json", help="Bandit JSON input file")
-    parser.add_argument("--template", required=True, help="Path to Jinja2 template")
-    parser.add_argument("--output", default="security_comment.md", help="Markdown output file")
+    parser.add_argument("--template", help="Path to Jinja2 template")
+    parser.add_argument("--output", default="bandit_report.md", help="Markdown output file")
     parser.add_argument("--outputs", help="Path to GitHub outputs file")
     parser.add_argument(
         "--fail-on",
@@ -123,17 +107,28 @@ def cli() -> None:
         choices=["none", "low", "medium", "high"],
         help="Severity level to fail on",
     )
+    parser.add_argument(
+        "--check-exit",
+        action="store_true",
+        help="Exit 1 if issues >= fail-on (no rendering, no outputs).",
+    )
     args = parser.parse_args()
 
     issues = load_bandit(args.input)
+
+    if args.check_exit:
+        # Only threshold evaluation
+        if filter_failures(issues, args.fail_on):
+            print(f"❌ Bandit found issues >= {args.fail_on.upper()}")
+            sys.exit(1)
+        sys.exit(0)
+
+    # Default: render report + write outputs
+    if not args.template:
+        parser.error("--template is required unless --check-exit is set")
+
     render(issues, args.template, args.output)
-
-    exit_code = 1 if filter_failures(issues, args.fail_on) else 0
-    write_outputs(args.outputs, issues, exit_code)
-
-    if exit_code != 0:
-        print(f"❌ Bandit found issues >= {args.fail_on.upper()}")
-        sys.exit(1)
+    write_outputs(args.outputs, issues)
 
 
 if __name__ == "__main__":

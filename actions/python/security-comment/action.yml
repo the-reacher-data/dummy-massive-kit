@@ -86,7 +86,7 @@ runs:
       if: always()
       shell: bash
       run: |
-        if [ "${{ steps.build.outputs.bandit_exit }}" != "0" ]; then
-          echo "❌ Blocking Bandit issues found"
-          exit 1
-        fi
+        uv run python "${{ github.action_path }}/src/builder.py" \
+        --input bandit.json \
+        --fail-on "${{ inputs.fail-on }}" \
+        --check-exit
