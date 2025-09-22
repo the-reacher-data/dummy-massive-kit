@@ -54,6 +54,7 @@ runs:
           --input bandit.json \
           --template "${{ github.action_path }}/src/templates/report.md.j2" \
           --output security_comment.md \
+          --outputs $GITHUB_OUTPUT \
           --fail-on "${{ inputs.fail-on }}"
         COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
         echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
