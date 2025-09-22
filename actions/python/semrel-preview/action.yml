@@ -1,55 +1,33 @@
 name: "Semantic Release Preview"
-description: "Generate changelog preview for PRs (pre-release, TestPyPI)."
+description: "Generate changelog preview, publish pre-releases to TestPyPI, and update PR comment"
 
 inputs:
   github-token:
     description: "GitHub token for posting PR comments"
     required: true
-  pypi-token:
-    description: "PyPI or TestPyPI token"
+  testpypi-token:
+    description: "Token for TestPyPI"
     required: true
 
 runs:
   using: "composite"
   steps:
-    - name: Setup Python
-      uses: actions/setup-python@v5
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Python Semantic Release (TestPyPI prerelease, no push to PyPI)
+      uses: python-semantic-release/python-semantic-release@v10.4.1
       with:
-        python-version: "3.11"
-    
-    - name: Setup uv
-      uses: astral-sh/setup-uv@v3
-    
-    - name: Install semantic-release 
-      shell: bash 
-      run: uv pip install python-semantic-release jinja2
-
-    - name: Generate raw changelog
-      shell: bash
+        github_token: ${{ inputs.github-token }}
+        pypi_token: ${{ inputs.testpypi-token }}
       env:
-        GH_TOKEN: ${{ inputs.github-token }}
-        SEMR_BRANCH: ${{ github.head_ref }}
+        PYPI_REPOSITORY: testpypi
+
+    - name: Extract changelog (latest section only)
+      shell: bash
       run: |
-        uv run semantic-release changelog > /dev/null || true
-        awk '/^## /{i++}i==1' CHANGELOG.md > raw_changelog.md
-    
-    - name: Get next version
-      shell: bash
-      env:
-        SEMR_BRANCH: ${{ github.head_ref }}
-        GH_TOKEN: ${{ inputs.github-token }}
-      run: |
-        uv run semantic-release version --no-commit --no-tag --no-push --no-changelog --skip-build > next_version.txt
-
-    - name: Publish pre-release (noop in PR)
-
-      if: github.event_name == 'pull_request'
-      shell: bash
-      env:
-        PYPI_REPOSITORY: testpypi 
-        PYPI_TOKEN: ${{ inputs.pypi-token }}
-        GH_TOKEN: ${{ inputs.github-token }}
-      run: uv run semantic-release publish
+        touch CHANGELOG.md
+        awk 'BEGIN{p=0} /^## /{if(p) exit; p=1} p' CHANGELOG.md > raw_changelog.md
 
     - name: Build changelog comment
       id: build
@@ -59,7 +37,7 @@ runs:
           --input raw_changelog.md \
           --template ${{ github.action_path }}/src/templates/report.md.j2 \
           --output changelog_preview.md \
-          --version-file next_version.txt
+          --version-file .semantic_release_version  # generado por la action oficial
 
     - name: Post / update PR comment
       if: github.event_name == 'pull_request'
