@@ -31,18 +31,18 @@ runs:
 
     - name: Generate raw changelog
       shell: bash
-      run: semantic-release changelog --unreleased > raw_changelog.md || true
+      run: uv run semantic-release changelog --unreleased > raw_changelog.md || true
     
     - name: Get next version
       shell: bash
-      run: semantic-release version --print > next_version.txt
+      run: uv run semantic-release version --print > next_version.txt
 
     - name: Publish pre-release
       shell: bash
       env:
         PYPI_TOKEN: ${{ inputs.pypi-token }}
       run: |
-        semantic-release publish \
+        uv run semantic-release publish \
           --repository-url ${{ inputs.repository-url }} \
           --token $PYPI_TOKEN
 
