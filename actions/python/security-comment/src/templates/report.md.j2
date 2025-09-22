@@ -6,17 +6,13 @@
 Bandit Security Report
 </h2>
 
-{% if count == 0 %}
-✅ No Bandit issues found!
-{% else %}
-⚠️ Found **{{ count }}** Bandit issues
-{% endif %}
+**{{ status_msg }}**
 
 ---
 
 {% if issues and issues|length > 0 %}
 <details>
-<summary>🛡️ Bandit Findings</summary>
+<summary>🛡️ Bandit Findings ({{ count }})</summary>
 
 | File | Line | Severity | Confidence | Test | Message |
 |:-----|-----:|:--------:|:----------:|:-----|:--------|

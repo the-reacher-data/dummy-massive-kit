@@ -57,13 +57,24 @@ def filter_failures(issues: list[BanditIssue], fail_on: str) -> bool:
             return True
     return False
 
+def build_status_message(issues: list[BanditIssue], fail_on: str) -> str:
+    """Return a human-readable status message for the PR comment."""
+    total = len(issues)
+    if total == 0:
+        return "✅ No Bandit issues found"
+
+    blocking = filter_failures(issues, fail_on)
+    if blocking:
+        return f"❌ Found {total} Bandit issues, including issues >= {fail_on.upper()} (blocking)"
+    else:
+        return f"⚠️ Found {total} Bandit issues, but all are below the '{fail_on.upper()}' threshold"
 
 # ---------------------------
 # Rendering
 # ---------------------------
 
 
-def render(issues: list[BanditIssue], template_path: str, output: str) -> None:
+def render(issues: list[BanditIssue], template_path: str, output: str, status_msg: str) -> None:
     """Render report from Jinja2 template and write markdown file."""
     tmpl_path = pathlib.Path(template_path)
     env = Environment(
@@ -73,7 +84,7 @@ def render(issues: list[BanditIssue], template_path: str, output: str) -> None:
         lstrip_blocks=True,
     )
     template = env.get_template(tmpl_path.name)
-    markdown = template.render(count=len(issues), issues=issues)
+    markdown = template.render(count=len(issues), issues=issues, status_msg=status_msg)
     pathlib.Path(output).write_text(markdown, encoding="utf-8")
 
 
@@ -126,8 +137,8 @@ def cli() -> None:
     # Default: render report + write outputs
     if not args.template:
         parser.error("--template is required unless --check-exit is set")
-
-    render(issues, args.template, args.output)
+    status_msg = build_status_message(issues, args.fail_on)
+    render(issues, args.template, args.output, status_msg)
     write_outputs(args.outputs, issues)
 
 

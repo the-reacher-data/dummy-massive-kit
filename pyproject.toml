@@ -65,14 +65,10 @@ select = ["E", "F", "I", "UP", "B", "W", "N", "ASYNC", "PL", "RUF"]
 
 # --- isort ---
 [tool.isort]
-profile = "black"
+profile = "ruff"
 line_length = 100
 combine_as_imports = true
 
-# --- Black ---
-[tool.black]
-line-length = 100
-target-version = ["py311"]
 
 # --- mypy ---
 [tool.mypy]
