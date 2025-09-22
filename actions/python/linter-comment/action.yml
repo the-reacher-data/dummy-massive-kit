@@ -29,6 +29,7 @@ runs:
     - uses: astral-sh/setup-uv@v3
 
     - name: Install tools
+      shell: bash
       run: uv pip install ruff mypy jinja2
 
     - name: Run Ruff
@@ -44,6 +45,7 @@ runs:
 
     - name: Build lint report
       id: build
+      shell: bash
       run: |
         uv run python ${{ github.action_path }}/src/builder.py \
           --ruff ruff.json \
@@ -75,6 +77,7 @@ runs:
 
     - name: Fail if blocking
       if: always()
+      shell: bash
       run: |
         uv run python ${{ github.action_path }}/src/builder.py \
           --ruff ruff.json \
