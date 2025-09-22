@@ -183,17 +183,6 @@ def render_report(
         [fc for fc in files_cov if fc.percent < threshold], key=lambda fc: fc.percent
     )
 
-    problems = []
-    if junit_data["failed"] > 0:
-        problems.append(f"❌ {junit_data['failed']} tests failed")
-    if coverage < threshold:
-        problems.append(f"⚠️ Coverage below threshold ({coverage:.2f}% < {threshold}%)")
-
-    if not problems:
-        status_msg = "✅ All tests passed and coverage OK"
-    else:
-        status_msg = " • ".join(problems)
-
     template = env.get_template("report.md.j2")
     return template.render(
         coverage=round(coverage, 2),
@@ -204,7 +193,6 @@ def render_report(
         passed=junit_data["passed"],
         failed=junit_data["failed"],
         skipped=junit_data["skipped"],
-        status_msg=status_msg,
     )
 
 

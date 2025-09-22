@@ -1,38 +1,54 @@
-<!-- massive-devops-pytest -->
+<!-- massivekit-pytest-report -->
+<h2>
+  <img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="32" style="vertical-align:middle; margin-right:8px"/>
+  Pytest Report
+</h2>
 
-# <img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="80" /> Pytest Report
+## 📊 Summary
 
-![TotalTests](https://img.shields.io/badge/Tests-{{ tests }}-blue?logo=pytest)![Passed](https://img.shields.io/badge/Passed-{{ passed }}-brightgreen)![Failures](https://img.shields.io/badge/Failures-{{ failed }}-{{ "red" if failed > 0 else "brightgreen" }})![Skipped](https://img.shields.io/badge/Skipped-{{ skipped }}-lightgrey)
+| Metric          | Value |
+|-----------------|-------|
+| ✅ Passed tests | **{{ passed }}** |
+| ❌ Failed tests | **{{ failed }}** |
+| ⏭ Skipped tests | **{{ skipped }}** |
+| 🧪 Total tests  | **{{ total }}** |
+| 📈 Coverage     | ![coverage](https://img.shields.io/badge/{{ coverage }}%25-{{ "green" if coverage >= threshold else "red" }}?style=for-the-badge&logo=codecov) |
 
-
-![Coverage](https://img.shields.io/badge/Coverage-{{ "%.0f"|format(coverage) }}%25-{{ 'red' if coverage < threshold else 'brightgreen' }})
-
-
-
-**{{ status_msg }}**
+{% if failed > 0 %}
+❌ Some tests failed. Please review the details below.
+{% elif coverage < threshold %}
+⚠️ Coverage ({{ coverage }}%) is below the threshold ({{ threshold }}%).
+{% else %}
+✅ All tests passed and coverage OK.
+{% endif %}
 
 ---
 
-{% if failures and failures|length > 0 %}
+## 🔍 Details
+
 <details>
-<summary>❌ Failed tests ({{ failures|length }})</summary>
+<summary>❌ Failed Tests ({{ failed }})</summary>
 
 | Test | Message |
-|:-----|:--------|
-{% for f in failures -%}
-| `{{ f.nodeid }}` | <details><summary>Show</summary><code>{{ f.message | replace("\n", "<br>") }}</code></details> |
+|------|---------|
+{% for f in failures %}
+| `{{ f.nodeid }}` | {{ f.message }} |
 {% endfor %}
-</details>
+{% if failures|length == 0 %}
+_No failed tests 🎉_
 {% endif %}
+</details>
 
-{% if under_files and under_files|length > 0 %}
+
 <details>
-<summary>⚠️ Files below coverage threshold ({{ "%.1f"|format(threshold) }}%)</summary>
+<summary>⚠️ Files Below Coverage Threshold ({{ threshold }}%)</summary>
 
-| File | Coverage | Missing lines |
-|:-----|---------:|:--------------|
-{% for fc in under_files -%}
-| `{{ fc.path }}` | {{ "%.2f"|format(fc.percent) }}% | {{ (fc.missing_lines | join(", ")) if fc.missing_lines else "—" }} |
+| File | Coverage |
+|------|----------|
+{% for path, pct in under_files %}
+| `{{ path }}` | {{ pct }}% |
 {% endfor %}
-</details>
+{% if under_files|length == 0 %}
+_All files meet coverage requirements ✅_
 {% endif %}
+</details>
