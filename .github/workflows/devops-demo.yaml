@@ -27,7 +27,7 @@ jobs:
         run: uv sync --group ci --extra dev
 
       - name: Run Ruff + MyPy Linter
-        uses: ./actions/python/lint-comment
+        uses: ./actions/python/linter-comment
         with:
           src-dir: src
           github-token: ${{ secrets.GITHUB_TOKEN }}
