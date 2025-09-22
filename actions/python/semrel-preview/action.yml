@@ -12,15 +12,17 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v4
-
-    - name: Python Semantic Release (TestPyPI prerelease, no push to PyPI)
-      uses: python-semantic-release/python-semantic-release@v10.4.1
       with:
-        github_token: ${{ inputs.github-token }}
-        pypi_token: ${{ inputs.testpypi-token }}
+        fetch-depth: 0
+        ref: ${{ github.head_ref }}
+
+    - name: Semantic Release (preview to TestPyPI)
+      uses: python-semantic-release/python-semantic-release@v10.4.1
       env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        PYPI_TOKEN: ${{ inputs.testpypi-token }}
         PYPI_REPOSITORY: testpypi
 
     - name: Extract changelog (latest section only)
