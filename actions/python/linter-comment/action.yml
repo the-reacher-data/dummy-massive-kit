@@ -4,11 +4,14 @@ description: "Run Ruff + MyPy and post a PR comment"
 inputs:
   src-dir:
     default: "src"
+    required: false
   github-token:
     required: true
   fail-on:
+    required: false
     default: "any" # or "none"
   exclude:
+    required: false
     default: "tests,migrations"
 
 outputs:
@@ -32,7 +35,10 @@ runs:
       run: uv run ruff check ${{ inputs.src-dir }} --exclude "${{ inputs.exclude }}" --output-format json > ruff.json || true
 
     - name: Run MyPy
-      run: uv run mypy ${{ inputs.src-dir }} --exclude "${{ inputs.exclude//,/| }}" > mypy.txt || true
+      shell: bash
+      run: |
+        EXCLUDE_REGEX=$(echo "${{ inputs.exclude }}" | sed 's/,/|/g')
+        uv run mypy "${{ inputs.src-dir }}" --exclude "$EXCLUDE_REGEX" > mypy.txt || true
 
     - name: Build lint report
       id: build
