@@ -42,6 +42,8 @@ runs:
         uv run semantic-release version --no-commit --no-tag --no-push --no-changelog --skip-build > next_version.txt
 
     - name: Publish pre-release (noop in PR)
+      env:
+        PYPI_REPOSITORY: testpypi 
       if: github.event_name == 'pull_request'
       shell: bash
       env:
