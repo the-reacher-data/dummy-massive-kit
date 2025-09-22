@@ -26,6 +26,14 @@ jobs:
       - name: Sync Dependencies
         run: uv sync --group ci --extra dev
 
+      - name: Run Ruff + MyPy Linter
+        uses: ./actions/python/lint-comment
+        with:
+          src-dir: src
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on: any
+          exclude: "tests"
+
       - name: Pytest Comment
         uses: ./actions/python/pytest-comment
         with:

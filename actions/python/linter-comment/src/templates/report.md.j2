@@ -1,0 +1,30 @@
+<!-- massive-devops-lint -->
+# 🧹 Lint & Type Check Report
+
+**{{ status_msg }}**
+
+---
+
+{% if ruff and ruff|length > 0 %}
+<details>
+<summary><img src="https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/ruff.svg" alt="ruff" height="20" /> Ruff findings ({{ ruff_count }})</summary>
+
+| File | Line | Rule | Message |
+|:-----|-----:|:-----|:--------|
+{% for issue in ruff -%}
+| `{{ issue.filename }}` | {{ issue.location.row }} | {{ issue.code }} | {{ issue.message }} |
+{% endfor %}
+</details>
+{% endif %}
+
+{% if mypy and mypy|length > 0 %}
+<details>
+<summary><img src="https://raw.githubusercontent.com/python/mypy/main/docs/logo/mypy-logo.svg" alt="mypy" height="20" /> MyPy findings ({{ mypy_count }})</summary>
+
+```text
+{% for line in mypy -%}
+{{ line }}
+{% endfor %}
+```
+</details>
+{% endif %}
