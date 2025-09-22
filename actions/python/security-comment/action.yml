@@ -60,28 +60,31 @@ runs:
         echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
         echo "path=security_comment.md" >> "$GITHUB_OUTPUT"
 
-    - name: 💬 Post PR comment
+    - name: Post / update PR comment
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
+      env:
+        BODY_FILE: security_comment.md
       with:
         github-token: ${{ inputs.github-token }}
-        script: |
-          const fs = require('fs');
-          const body = fs.readFileSync('${{ steps.report.outputs.path }}','utf8');
-          const tag = '<!-- massivekit-security -->';
-          const full = tag + '\n' + body;
+      script: |
+        const fs = require('fs');
+        const body = fs.readFileSync(process.env.BODY_FILE, 'utf8');
+        const tag = '<!-- massivekit-security -->';
+        const full = tag + '\n' + body;
 
-          const { owner, repo } = context.repo;
-          const issue_number = context.issue.number;
+        const { owner, repo } = context.repo;
+        const issue_number = context.issue.number;
 
-          const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
-          const existing = comments.find(c => c.body && c.body.includes(tag));
+        const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+        const existing = comments.find(c => c.body && c.body.includes(tag));
 
-          if (existing) {
-            await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: full });
-          } else {
-            await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
+        if (existing) {
+          await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: full });
+        } else {
+          await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
           }
+        }
     - name: Fail if blocking issues
       if: always()
       shell: bash
