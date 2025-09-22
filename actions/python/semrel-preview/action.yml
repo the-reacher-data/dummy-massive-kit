@@ -46,7 +46,7 @@ runs:
       shell: bash
       env:
         PYPI_TOKEN: ${{ inputs.pypi-token }}
-      run: uv run semantic-release publish --noop || true
+      run: uv run semantic-release publish || true
 
     - name: Build changelog comment
       id: build
