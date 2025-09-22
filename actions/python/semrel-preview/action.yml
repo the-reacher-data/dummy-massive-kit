@@ -31,7 +31,7 @@ runs:
 
     - name: Generate raw changelog
       shell: bash
-      run: uv run semantic-release changelog --unreleased-changes > raw_changelog.md || true
+      run: uv run semantic-release changelog --stdout > raw_changelog.md || true
     
     - name: Get next version
       shell: bash

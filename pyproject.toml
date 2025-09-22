@@ -108,16 +108,15 @@ changelog_file = "CHANGELOG.md"
 build_command = "uv run python -m build"
 upload_to_pypi = true
 upload_to_release = true
-version_toml = [
-  ["pyproject.toml", 'version = "(?P<version>.*)"']
-]
+version_toml = ["pyproject.toml:project.version"]
 
 [tool.semantic_release.branches.main]
 match = "main"
 prerelease = false
 
-[tool.semantic_release.branches.release]
-match = "release/.*"
+# Prerelease en todas las ramas de trabajo
+[tool.semantic_release.branches.dev]
+match = "(feat|feature|multifeature|hotfix|fix|chore)/.*"
 prerelease = true
 
 [tool.semantic_release.commit_parser_options]
