@@ -29,7 +29,7 @@ jobs:
       - name: Run Ruff + MyPy Linter
         uses: ./actions/python/linter-comment
         with:
-          src-dir: src
+          src-dir: actions
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on: any
           exclude: "tests"

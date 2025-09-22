@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<testsuite errors="0" failures="1" name="mypy" skips="0" tests="1" time="0.030">
-  <testcase classname="mypy" file="mypy" line="1" name="mypy-py3_11-linux" time="0.030">
-    <failure message="mypy produced messages">actions/python/pytest-comment/src/builder.py: error: Duplicate module named "builder" (also at "actions/python/linter-comment/src/builder.py")
-actions/python/pytest-comment/src/builder.py: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#mapping-file-paths-to-modules for more info
-actions/python/pytest-comment/src/builder.py: note: Common resolutions include: a) using `--exclude` to avoid checking one of them, b) adding `__init__.py` somewhere, c) using `--explicit-package-bases` or adjusting MYPYPATH</failure>
-  </testcase>
-</testsuite>

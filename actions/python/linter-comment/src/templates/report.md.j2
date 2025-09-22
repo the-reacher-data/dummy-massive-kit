@@ -7,7 +7,7 @@
 
 {% if ruff and ruff|length > 0 %}
 <details>
-<summary><img src="https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/ruff.svg" alt="ruff" height="20" /> Ruff findings ({{ ruff_count }})</summary>
+<summary><img src="ithub.com/astral-sh/ruff/blob/main/docs/assets/ruff-favicon.png" alt="ruff" height="20" /> Ruff findings ({{ ruff_count }})</summary>
 
 | File | Line | Rule | Message |
 |:-----|-----:|:-----|:--------|
@@ -19,7 +19,7 @@
 
 {% if mypy and mypy|length > 0 %}
 <details>
-<summary><img src="https://raw.githubusercontent.com/python/mypy/main/docs/logo/mypy-logo.svg" alt="mypy" height="20" /> MyPy findings ({{ mypy_count }})</summary>
+<summary><img src="https://github.com/python/mypy/blob/master/docs/source/mypy_light.svg" alt="mypy" height="20" /> MyPy findings ({{ mypy_count }})</summary>
 
 ```text
 {% for line in mypy -%}
