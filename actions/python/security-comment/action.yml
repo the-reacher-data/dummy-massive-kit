@@ -81,3 +81,11 @@ runs:
           } else {
             await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
           }
+    - name: Fail if blocking issues
+      if: always()
+      shell: bash
+      run: |
+        if [ "${{ steps.build.outputs.bandit_exit }}" != "0" ]; then
+          echo "❌ Blocking Bandit issues found"
+          exit 1
+        fi

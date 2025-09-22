@@ -5,23 +5,22 @@
 Bandit Security Report
 </h2>
 
-
-**Total issues found:** {{ count }}
-
-{% if issues %}
-<details>
-<summary>⚠️ Details of findings ({{ count }})</summary>
-
-| File | Line | Severity | Confidence | Test ID | Message |
-|-----:|-----:|:--------:|:----------:|:-------:|:--------|
-{% for i in issues[:50] -%}
-| `{{ i.filename }}` | {{ i.line_number }} | {{ i.issue_severity }} | {{ i.issue_confidence }} | {{ i.test_id }} | {{ i.issue_text }} |
-{% endfor %}
-{% if issues|length > 50 %}
-… and **{{ issues|length - 50 }}** more
+{% if count == 0 %}
+✅ No Bandit issues found!
+{% else %}
+⚠️ Found **{{ count }}** Bandit issues
 {% endif %}
 
+---
+
+{% if issues and issues|length > 0 %}
+<details>
+<summary>🛡️ Bandit Findings</summary>
+
+| File | Line | Severity | Confidence | Test | Message |
+|:-----|-----:|:--------:|:----------:|:-----|:--------|
+{% for issue in issues -%}
+| `{{ issue.filename }}` | {{ issue.line_number }} | {{ issue.severity }} | {{ issue.confidence }} | {{ issue.test_id }} | {{ issue.issue_text }} |
+{% endfor %}
 </details>
-{% else %}
-✅ No security issues detected by Bandit.
 {% endif %}
