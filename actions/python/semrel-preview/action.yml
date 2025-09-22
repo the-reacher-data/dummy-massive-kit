@@ -6,13 +6,8 @@ inputs:
     description: "GitHub token for posting PR comments"
     required: true
   pypi-token:
-    description: "PyPI token"
+    description: "PyPI or TestPyPI token"
     required: true
-  repository-url:
-    description: "Repository URL"
-    required: false
-    default: "https://test.pypi.org/legacy/"
-
 
 runs:
   using: "composite"
@@ -25,30 +20,26 @@ runs:
     - name: Setup uv
       uses: astral-sh/setup-uv@v3
 
-    - name: Install semantic-release
-      shell: bash
-      run: uv pip install python-semantic-release jinja2
-
     - name: Generate raw changelog
       shell: bash
       env:
         SEMR_BRANCH: ${{ github.head_ref }}
-      run: uv run semantic-release changelog > raw_changelog.md || true
+      run: |
+        uv run semantic-release changelog --noop > /dev/null || true
+        awk '/^## /{i++}i==1' CHANGELOG.md > raw_changelog.md
     
     - name: Get next version
       shell: bash
       env:
         SEMR_BRANCH: ${{ github.head_ref }}
-      run: uv run semantic-release version --print > next_version.txt
+      run: uv run semantic-release version --print --noop > next_version.txt
 
-    - name: Publish pre-release
+    - name: Publish pre-release (noop in PR)
+      if: github.event_name == 'pull_request'
       shell: bash
       env:
         PYPI_TOKEN: ${{ inputs.pypi-token }}
-      run: |
-        uv run semantic-release publish \
-          --repository-url ${{ inputs.repository-url }} \
-          --token $PYPI_TOKEN
+      run: uv run semantic-release publish --noop || true
 
     - name: Build changelog comment
       id: build
