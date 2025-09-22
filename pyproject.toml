@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools>=65", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "build"]
 build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
@@ -115,7 +115,6 @@ version_toml = ["pyproject.toml:project.version"]
 match = "main"
 prerelease = false
 
-# Prerelease en todas las ramas de trabajo
 [tool.semantic_release.branches.dev]
 match = "(feat|feature|multifeature|hotfix|fix|chore)/.*"
 prerelease = true
