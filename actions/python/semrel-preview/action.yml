@@ -31,10 +31,14 @@ runs:
 
     - name: Generate raw changelog
       shell: bash
+      env:
+        SEMR_BRANCH: ${{ github.head_ref }}
       run: uv run semantic-release changelog > raw_changelog.md || true
     
     - name: Get next version
       shell: bash
+      env:
+        SEMR_BRANCH: ${{ github.head_ref }}
       run: uv run semantic-release version --print > next_version.txt
 
     - name: Publish pre-release
