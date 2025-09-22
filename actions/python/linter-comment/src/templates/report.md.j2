@@ -1,13 +1,21 @@
-<!-- massive-devops-lint -->
+!-- massive-devops-lint -->
 # 🧹 Lint & Type Check Report
 
 **{{ status_msg }}**
 
 ---
 
-{% if ruff and ruff|length > 0 %}
+## 🐶 Ruff Report <img src="https://github.com/astral-sh/ruff/blob/main/docs/assets/ruff-favicon.png?raw=true" alt="ruff" height="20" />
+
+| Metric | Value |
+|:-------|------:|
+| Findings | {{ ruff_count }} |
+
+{% if ruff_count == 0 %}
+✅ No Ruff issues found
+{% else %}
 <details>
-<summary><img src="https://github.com/astral-sh/ruff/blob/main/docs/assets/ruff-favicon.png?raw=true" alt="ruff" height="20" /> Ruff findings ({{ ruff_count }})</summary>
+<summary>🔎 Ruff Findings ({{ ruff_count }})</summary>
 
 | File | Line | Rule | Message |
 |:-----|-----:|:-----|:--------|
@@ -17,14 +25,23 @@
 </details>
 {% endif %}
 
-{% if mypy and mypy|length > 0 %}
+---
+
+## 📐 MyPy Report <img src="https://github.com/python/mypy/blob/master/docs/source/mypy_light.svg?raw=true" alt="mypy" height="20" />
+
+| Metric | Value |
+|:-------|------:|
+| Findings | {{ mypy_count }} |
+
+{% if mypy_count == 0 %}
+✅ No MyPy issues found
+{% else %}
 <details>
-<summary><img src="https://github.com/python/mypy/blob/master/docs/source/mypy_light.svg?raw=true" alt="mypy" height="20" /> MyPy findings ({{ mypy_count }})</summary>
+<summary>🔎 MyPy Findings ({{ mypy_count }})</summary>
 
 ```text
 {% for line in mypy -%}
 {{ line }}
 {% endfor %}
-```
-</details>
-{% endif %}
+</details> 
+{% endif %} ```
