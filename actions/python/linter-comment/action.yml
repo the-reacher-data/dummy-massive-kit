@@ -32,7 +32,9 @@ runs:
       run: uv pip install ruff mypy jinja2
 
     - name: Run Ruff
-      run: uv run ruff check ${{ inputs.src-dir }} --exclude "${{ inputs.exclude }}" --output-format json > ruff.json || true
+      shell: bash
+      run: |
+        uv run ruff check "${{ inputs.src-dir }}" --exclude "${{ inputs.exclude }}" --output-format json > ruff.json || true
 
     - name: Run MyPy
       shell: bash
