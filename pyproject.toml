@@ -118,6 +118,7 @@ prerelease = false
 [tool.semantic_release.branches.dev]
 match = "(feat|feature|multifeature|hotfix|fix|chore)/.*"
 prerelease = true
+prerelease_token = "dev"
 
 [tool.semantic_release.commit_parser_options]
 allowed_types = ["feat", "fix", "hotfix", "docs", "chore", "refactor", "perf"]

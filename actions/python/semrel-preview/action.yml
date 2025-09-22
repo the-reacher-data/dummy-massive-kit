@@ -27,6 +27,7 @@ runs:
     - name: Generate raw changelog
       shell: bash
       env:
+        GH_TOKEN: ${{ inputs.github-token }}
         SEMR_BRANCH: ${{ github.head_ref }}
       run: |
         uv run semantic-release changelog > /dev/null || true
@@ -37,8 +38,10 @@ runs:
       shell: bash
       env:
         SEMR_BRANCH: ${{ github.head_ref }}
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        uv run semantic-release version > next_version.txt
+        uv run semantic-release version --no-commit --no-tag --no-push --no-changelog --skip-build \
+        --build-metadata "run.${{ github.run_number }}" > next_version.txt
         cat next_version.txt
 
     - name: Publish pre-release (noop in PR)
