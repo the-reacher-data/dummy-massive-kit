@@ -38,4 +38,5 @@ jobs:
         uses: ./actions/python/security-comment
         with:
           src-dir: src
+          fail-on: "low"
           github-token: ${{ secrets.GITHUB_TOKEN }}
