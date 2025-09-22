@@ -67,8 +67,8 @@ runs:
         script: |
           const fs = require('fs');
           const body = fs.readFileSync('${{ steps.report.outputs.path }}','utf8');
-          const marker = '<!-- massivekit-security -->';
-          const fullBody = marker + '\n' + body;
+          const tag = '<!-- massivekit-security -->';
+          const full = tag + '\n' + body;
 
           const { owner, repo } = context.repo;
           const issue_number = context.issue.number;
