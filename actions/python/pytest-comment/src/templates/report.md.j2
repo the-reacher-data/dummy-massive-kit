@@ -1,7 +1,7 @@
 <!-- massivekit-pytest-report -->
 <h2>
-  <img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="32" style="vertical-align:middle; margin-right:8px"/>
-  Pytest Report
+<img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="80" style="vertical-align:middle; margin-right:8px"/>
+Pytest Report
 </h2>
 
 ## 📊 Summary
@@ -11,8 +11,8 @@
 | ✅ Passed tests | **{{ passed }}** |
 | ❌ Failed tests | **{{ failed }}** |
 | ⏭ Skipped tests | **{{ skipped }}** |
-| 🧪 Total tests  | **{{ total }}** |
-| 📈 Coverage     | ![coverage](https://img.shields.io/badge/{{ coverage }}%25-{{ "green" if coverage >= threshold else "red" }}?style=for-the-badge&logo=codecov) |
+| 🧪 Total tests  | **{{ tests }}** |
+| 📈 Coverage     | ![coverage](https://img.shields.io/badge/{{ coverage }}%25-{{ "green" if coverage >= threshold else "red" }}?style=for-the-badge&logo=pytest) |
 
 {% if failed > 0 %}
 ❌ Some tests failed. Please review the details below.
