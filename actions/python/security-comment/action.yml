@@ -1,74 +1,68 @@
-name: massive-security
-description: |
-  Run Bandit security analysis, generate Markdown report
-  and publish/update PR comment.
+name: "Bandit Comment"
+description: "Run Bandit security analysis and post a PR comment."
 
 inputs:
   src-dir:
-    description: "Source folder to scan"
+    description: "Source folder to scan with Bandit"
     required: false
     default: "src"
-
   github-token:
-    description: "GITHUB_TOKEN for posting PR comments"
+    description: "GitHub token for posting PR comments"
     required: true
-
   fail-on:
-    description: "Severity threshold for failing the action (none|low|medium|high)"
+    description: "Severity level to fail on (none, low, medium, high)"
     required: false
     default: "none"
 
-
 outputs:
-  issues:
+  bandit_issues:
     description: "Number of Bandit issues found"
-    value: ${{ steps.report.outputs.issues }}
+    value: ${{ steps.build.outputs.bandit_issues }}
+  bandit_exit:
+    description: "Exit code from Bandit builder (0=pass,1=fail)"
+    value: ${{ steps.build.outputs.bandit_exit }}
 
 runs:
-  using: composite
+  using: "composite"
   steps:
-    - uses: actions/setup-python@v5
+    - name: Ensure Python & uv
+      uses: actions/setup-python@v5
       with:
         python-version: "3.11"
-
     - uses: astral-sh/setup-uv@v3
 
-    - name: 📦 Install deps
+    - name: Install Bandit & Jinja2
       shell: bash
-      run: |
-        uv pip install bandit jinja2 tomlkit markupsafe
+      run: uv pip install bandit jinja2
 
-    - name: 🔒 Run Bandit
-      id: bandit
+    - name: Run Bandit
       shell: bash
+      continue-on-error: true
       run: |
-        uv run bandit -r ${{ inputs.src-dir }} -f json -o bandit.json || true
-        COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
-        echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
+        uv run bandit -r "${{ inputs.src-dir }}" -f json -o bandit.json || true
 
-    - name: 📝 Render Markdown report
-      id: report
+    - name: Build Bandit report
+      id: build
       shell: bash
       run: |
-        uv run python "${{ github.action_path }}/src/builder.py" \
+        uv run python "${{ github.action_path }}/src/builder_bandit.py" \
           --input bandit.json \
-          --template "${{ github.action_path }}/src/templates/report.md.j2" \
-          --output security_comment.md \
+          --template "${{ github.action_path }}/src/templates/bandit_report.md.j2" \
+          --output bandit_report.md \
           --outputs $GITHUB_OUTPUT \
           --fail-on "${{ inputs.fail-on }}"
-        COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
-        echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
-        echo "path=security_comment.md" >> "$GITHUB_OUTPUT"
 
-    - name: 💬 Post PR comment
+    - name: Post / update PR comment
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
+      env:
+        BODY_FILE: bandit_report.md
       with:
         github-token: ${{ inputs.github-token }}
         script: |
           const fs = require('fs');
-          const body = fs.readFileSync('${{ steps.report.outputs.path }}','utf8');
-          const tag = '<!-- massivekit-security -->';
+          const body = fs.readFileSync(process.env.BODY_FILE, 'utf8');
+          const tag = '<!-- massive-devops-bandit -->';
           const full = tag + '\n' + body;
 
           const { owner, repo } = context.repo;
@@ -82,6 +76,7 @@ runs:
           } else {
             await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
           }
+
     - name: Fail if blocking issues
       if: always()
       shell: bash
