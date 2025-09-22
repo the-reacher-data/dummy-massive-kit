@@ -47,7 +47,7 @@ runs:
       env:
         PYPI_TOKEN: ${{ inputs.pypi-token }}
         GH_TOKEN: ${{ inputs.github-token }}
-      run: uv run semantic-release publish || true
+      run: uv run semantic-release publish
 
     - name: Build changelog comment
       id: build
