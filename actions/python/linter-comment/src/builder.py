@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# type: ignore
 """
 Generate Ruff + MyPy markdown report for GitHub Actions.
 
@@ -14,6 +13,7 @@ import json
 import pathlib
 import sys
 from jinja2 import Environment, FileSystemLoader
+import xml.etree.ElementTree as ET
 
 
 # ---------------------------
@@ -35,12 +35,22 @@ def load_ruff(path: str) -> list[dict]:
         return []
 
 
-def load_mypy(path: str) -> list[str]:
-    """Load MyPy text output (list of lines)."""
+def load_mypy_junit(path: str) -> list[str]:
+    """Parse MyPy JUnit XML and return list of failure messages."""
     p = pathlib.Path(path) if path else None
     if not p or not p.exists():
         return []
-    return p.read_text(encoding="utf-8").splitlines()
+
+    tree = ET.parse(p)
+    root = tree.getroot()
+
+    issues: list[str] = []
+    for testcase in root.findall(".//testcase"):
+        for failure in testcase.findall("failure"):
+            msg = failure.text or failure.attrib.get("message", "")
+            if msg:
+                issues.append(msg.strip())
+    return issues
 
 
 # ---------------------------
@@ -103,7 +113,7 @@ def write_outputs(outputs_path: str | None, ruff: list[dict], mypy: list[str]) -
 def cli() -> None:
     parser = argparse.ArgumentParser(description="Build Ruff+MyPy markdown report for GitHub Actions.")
     parser.add_argument("--ruff", help="Path to Ruff JSON output")
-    parser.add_argument("--mypy", help="Path to MyPy text output")
+    parser.add_argument("--mypy", help="Path to MyPy junit.xml output")
     parser.add_argument("--template", help="Path to Jinja2 template (report.md.j2)")
     parser.add_argument("--output", default="lint_report.md", help="Markdown output file")
     parser.add_argument("--outputs", help="Path to GitHub outputs file")
@@ -112,7 +122,7 @@ def cli() -> None:
     args = parser.parse_args()
 
     ruff_issues = load_ruff(args.ruff)
-    mypy_issues = load_mypy(args.mypy)
+    mypy_issues = load_mypy_junit(args.mypy)
 
     if args.check_exit:
         # Evaluation-only mode: no rendering required.
