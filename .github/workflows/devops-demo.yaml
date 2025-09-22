@@ -47,3 +47,9 @@ jobs:
           src-dir: src
           fail-on: "low"
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Semantic Release Preview
+        uses: ./actions/python/semrel-preview
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pypi-token: ${{ secrets.TEST_PYPI_API_TOKEN }}

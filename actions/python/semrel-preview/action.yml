@@ -1,0 +1,79 @@
+name: "Semantic Release Preview"
+description: "Generate changelog preview for PRs (pre-release, TestPyPI)."
+
+inputs:
+  github-token:
+    description: "GitHub token for posting PR comments"
+    required: true
+  pypi-token:
+    description: "PyPI token"
+    required: true
+  repository-url:
+    description: "Repository URL"
+    required: false
+    default: "https://test.pypi.org/legacy/"
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v3
+
+    - name: Install semantic-release
+      shell: bash
+      run: uv pip install python-semantic-release jinja2
+
+    - name: Generate raw changelog
+      shell: bash
+      run: semantic-release changelog --unreleased > raw_changelog.md || true
+    
+    - name: Get next version
+      shell: bash
+      run: semantic-release version --print > next_version.txt
+
+    - name: Publish pre-release
+        env:
+          PYPI_TOKEN: ${{ inputs.pypi-token }}
+        run: |
+          semantic-release publish \
+            --repository-url ${{ inputs.repository-url }} \
+            --token $PYPI_TOKEN
+
+    - name: Build changelog comment
+      id: build
+      shell: bash
+      run: |
+        uv run python ${{ github.action_path }}/src/builder.py \
+          --input raw_changelog.md \
+          --template ${{ github.action_path }}/src/templates/report.md.j2 \
+          --output changelog_preview.md \
+          --version-file next_version.txt
+
+    - name: Post / update PR comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+          const body = fs.readFileSync('changelog_preview.md', 'utf8');
+          const tag = '<!-- massive-devops-changelog-preview -->';
+          const full = tag + '\n' + body;
+
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+
+          const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+          const existing = comments.find(c => c.body && c.body.includes(tag));
+
+          if (existing) {
+            await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: full });
+          } else {
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
+          }
