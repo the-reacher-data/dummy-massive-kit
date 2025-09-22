@@ -42,7 +42,7 @@ runs:
       id: bandit
       shell: bash
       run: |
-        uv run bandit -r ${{ inputs.src-dir }} -f json -o bandit.json || true
+        uv run bandit -c pyproject.toml -r ${{ inputs.src-dir }} -f json -o bandit.json || true
         COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
         echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
 
