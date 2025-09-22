@@ -29,10 +29,9 @@ jobs:
       - name: Run Ruff + MyPy Linter
         uses: ./actions/python/linter-comment
         with:
-          src-dir: actions
+          src-dir: src
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on: any
-          exclude: "tests"
 
       - name: Pytest Comment
         uses: ./actions/python/pytest-comment
@@ -40,7 +39,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           test-dir: "src/tests"
           src-dir: "src"
-          coverage-threshold: "60"
+          coverage-threshold: "80"
 
       - name: Security Comment
         uses: ./actions/python/security-comment
