@@ -19,6 +19,10 @@ runs:
     
     - name: Setup uv
       uses: astral-sh/setup-uv@v3
+    
+    - name: Install semantic-release 
+      shell: bash 
+      run: uv pip install python-semantic-release jinja2
 
     - name: Generate raw changelog
       shell: bash
