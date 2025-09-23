@@ -1,0 +1,15 @@
+name: "UV Requirements"
+description: "Install Python dependencies from a requirements.txt using uv"
+
+inputs:
+  requirements:
+    description: "Path to requirements.txt (relative to the repo)"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install requirements
+      shell: bash
+      run: |
+        echo "📦 Installing dependencies from ${{ inputs.requirements }}"
+        uv pip install -r "${{ inputs.requirements }}"

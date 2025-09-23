@@ -23,14 +23,14 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-python@v5
+
+    - uses: ./actions/python/uv-requirements
       with:
-        python-version: "3.11"
-    - uses: astral-sh/setup-uv@v3
+        requirements: ./actions/python/linter-comment/requirements.txt
 
     - name: Install tools
       shell: bash
-      run: uv pip install ruff mypy jinja2
+      run: uv pip install 
 
     - name: Run Ruff
       shell: bash

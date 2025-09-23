@@ -18,7 +18,6 @@ inputs:
     required: false
     default: "none"
 
-
 outputs:
   issues:
     description: "Number of Bandit issues found"
@@ -27,16 +26,9 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v5
+    - uses: ./actions/python/uv-requirements
       with:
-        python-version: "3.11"
-
-    - uses: astral-sh/setup-uv@v3
-
-    - name: 📦 Install deps
-      shell: bash
-      run: |
-        uv pip install bandit jinja2 tomlkit markupsafe
+        requirements: ./actions/python/security-comment/requirements.txt
 
     - name: 🔒 Run Bandit
       id: bandit

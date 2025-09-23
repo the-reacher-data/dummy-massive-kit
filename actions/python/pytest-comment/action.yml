@@ -32,15 +32,10 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Ensure Python & uv
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-    - uses: astral-sh/setup-uv@v3
 
-    - name: Install Jinja2
-      shell: bash
-      run: uv pip install jinja2
+    - uses: ./actions/python/uv-requirements
+      with:
+        requirements: ./actions/python/pytest-comment/requirements.txt
 
     - name: Run pytest with coverage
       id: pytest
