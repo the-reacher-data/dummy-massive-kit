@@ -28,10 +28,6 @@ runs:
       with:
         requirements: ./actions/python/linter-comment/requirements.txt
 
-    - name: Install tools
-      shell: bash
-      run: uv pip install 
-
     - name: Run Ruff
       shell: bash
       run: |
