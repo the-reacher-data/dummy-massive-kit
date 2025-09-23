@@ -28,10 +28,12 @@ runs:
       run: uv run twine check dist/*
     
 
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository-url: ${{inputs.pypi-url}}
-        user: ${{inputs.pypi-user-name}}
-        password: ${{inputs.pypi-secret}}
-        skip-existing: true 
+    - name: Publish to PyPI (Twine)
+      shell: bash
+      run: |
+        echo "🚀 Publishing to ${{ inputs.pypi-url }}"
+        uv run twine upload \
+        --repository-url "${{ inputs.pypi-url }}" \
+        -u "${{ inputs.pypi-user-name }}" \
+        -p "${{ inputs.pypi-secret }}" \
+        --skip-existing dist/*
