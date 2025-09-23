@@ -62,11 +62,6 @@ jobs:
           branch: ${{ github.head_ref }}
           prerelease: "true"
       
-      - name: Debug outputs
-        run: |
-          echo "Deploy output: ${{ steps.version.outputs.deploy }}"
-          echo "Version output: ${{ steps.version.outputs.version }}"
-
       - name: Changelog Conventional Commit
         uses: ./actions/devops/changelog-conventional-commit
         with:
@@ -75,6 +70,9 @@ jobs:
           version: ${{ steps.version.outputs.version }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output: changelog_preview.md
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Publish Package
         uses: ./actions/python/publish-package
