@@ -9,8 +9,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  pytest-and-coverage:
-    name: Pytest & Coverage Comment
+  prerelease-python:
+    name: Prerelease Python
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,4 +50,10 @@ jobs:
           src-dir: src
           fail-on: "low"
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Versioning Branch Semantic
+        uses: ./actions/devops/versioning-branch-semantic
+        with:
+          branch: ${{ github.head_ref }}
+          prerelease: "true"
 

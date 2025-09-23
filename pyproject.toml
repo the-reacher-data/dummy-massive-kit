@@ -100,28 +100,12 @@ tag_format = "v$version"
 update_changelog_on_bump = true
 changelog_file = "CHANGELOG.md"
 
-# --- Semantic Release ---
-[tool.semantic_release]
-version_source = "tag"
-commit_parser = "conventional"
-changelog_file = "CHANGELOG.md"
-build_command = "python -m build"
-upload_to_pypi = true
-upload_to_release = true
-repository = "pypi" 
-version_toml = ["pyproject.toml:project.version"]
-
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease = false
-
-[tool.semantic_release.branches.dev]
-match = "(feat|feature|multifeature|hotfix|fix|chore)/.*"
-prerelease = true
-prerelease_token = "dev"
-
-[tool.semantic_release.commit_parser_options]
-allowed_types = ["feat", "fix", "hotfix", "docs", "chore", "refactor", "perf"]
-
-[tool.semantic_release.changelog]
-ignore_types = ["chore", "docs"]
+# --- Semantic Branch ---
+[tool.semantic-branch]
+release = ["main"]     # branches that trigger final releases
+prerelease = ["hotfix/.*", "feature/.*"]  # branches that trigger prereleases (.devN)
+patch = ["hotfix/.*"]            # bump patch version
+minor = ["feature/.*", "feat/.*", "multifeature/.*"]           # bump minor version
+major = ["breaking/.*", "feat!/.*"]          # bump major version
+prerelease-ignore = ["docs/.*"]  # branches ignored for prerelease
+release-ignore = ["wip/.*", "docs/.*", "chore/.*"]      # branches ignored for release
