@@ -22,7 +22,7 @@ from jinja2 import Environment, FileSystemLoader
 import re
 from collections import defaultdict
 
-DEFAULT_TEMPLATE = str(Path(__file__).parent / "templates" / "enterprise.md.j2")
+DEFAULT_TEMPLATE = str(Path(__file__).parent / "templates" / "report.md.j2")
 
 
 def get_commits_pr(branch: str) -> List[dict]:
