@@ -34,5 +34,4 @@ runs:
         repository-url: ${{inputs.pypi-url}}
         user: ${{inputs.pypi-user-name}}
         password: ${{inputs.pypi-secret}}
-        docker-image: ghcr.io/pypa/gh-action-pypi-publish:release-v1
         skip-existing: true 
