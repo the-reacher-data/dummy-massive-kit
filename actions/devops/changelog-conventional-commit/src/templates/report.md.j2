@@ -1,0 +1,64 @@
+# 🚀 {{ version }}
+
+{% if commits.get("feat") %}
+## ✨ Features
+{% for m in commits["feat"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}
+
+{% if commits.get("fix") %}
+## 🐛 Fixes
+{% for m in commits["fix"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}
+
+{% if commits.get("docs") %}
+## 📖 Documentation
+{% for m in commits["docs"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}
+
+{% if commits.get("style") %}
+## 🎨 Style
+{% for m in commits["style"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}
+
+{% if commits.get("refactor") %}
+## ♻️ Refactor
+{% for m in commits["refactor"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}
+
+{% if commits.get("perf") %}
+## ⚡ Performance
+{% for m in commits["perf"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}
+
+{% if commits.get("test") %}
+## ✅ Tests
+{% for m in commits["test"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}
+
+{% if commits.get("chore") %}
+## 🛠 Chore
+{% for m in commits["chore"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}
+
+{% if commits.get("other") %}
+## 🔖 Other
+{% for m in commits["other"] %}
+- {{ m }}
+{% endfor %}
+{% endif %}

@@ -53,7 +53,16 @@ jobs:
       
       - name: Versioning Branch Semantic
         uses: ./actions/devops/versioning-branch-semantic
+        id: version
         with:
           branch: ${{ github.head_ref }}
           prerelease: "true"
+
+      - name: Changelog Conventional Commit
+        uses: ./actions/devops/changelog-conventional-commit
+        with:
+          mode: "pr"
+          branch: ${{ github.head_ref }}
+          version: ${{ steps.version.outputs.version }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 

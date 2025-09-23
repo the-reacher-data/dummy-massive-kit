@@ -26,7 +26,7 @@ runs:
 
     - uses: ./actions/python/uv-requirements
       with:
-        requirements: ./actions/python/linter-comment/requirements.txt
+        requirements: ${{ github.action_path }}/requirements.txt
 
     - name: Run Ruff
       shell: bash

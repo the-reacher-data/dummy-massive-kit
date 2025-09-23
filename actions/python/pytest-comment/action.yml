@@ -35,7 +35,7 @@ runs:
 
     - uses: ./actions/python/uv-requirements
       with:
-        requirements: ./actions/python/pytest-comment/requirements.txt
+        requirements: ${{ github.action_path }}/requirements.txt
 
     - name: Run pytest with coverage
       id: pytest

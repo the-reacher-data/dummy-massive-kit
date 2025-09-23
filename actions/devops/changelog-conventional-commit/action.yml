@@ -1,0 +1,61 @@
+name: "Changelog Conventional Commit"
+description: "Generate changelog from conventional commits (PR preview or squash release)"
+
+inputs:
+  mode:
+    description: "Mode: pr or release"
+    required: true
+  branch:
+    description: "Branch name (required)"
+    required: true
+  version:
+    description: "Version string (optional, fallback to commit title/body)"
+    required: false
+  template:
+    description: "Path to Jinja2 template (optional, uses default if not set)"
+    required: false
+    default: ${{ github.action_path }}/src/templates/report.md.j2
+  output:
+    description: "Output Markdown file"
+    required: true
+  github-token:
+    description: "GitHub token (only needed in PR mode)"
+    required: false
+
+outputs:
+  changelog:
+    description: "Generated changelog markdown"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      uses: ./actions/python/uv-requirements
+      with:
+        requirements: ${{ github.action_path }}/requirements.txt
+
+    - name: Generate changelog
+      id: changelog
+      shell: bash
+      run: |
+        args="--mode ${{ inputs.mode }} --branch ${{ inputs.branch }} --output ${{ inputs.output }}"
+        if [ -n "${{ inputs.version }}" ]; then
+          args="$args --version ${{ inputs.version }}"
+        fi
+        if [ -n "${{ inputs.template }}" ]; then
+          args="$args --template ${{ inputs.template }}"
+        fi
+
+        uv run python ${{ github.action_path }}/src/cli.py $args
+
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat "${{ inputs.output }}" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Update PR comment
+      if: ${{ inputs.mode == 'pr' }}
+      uses: ./actions/devops/pr-comment-update
+      with:
+        github-token: ${{ inputs.github-token }}
+        tags: "<!-- changelog-preview -->,<!-- branch-source:${{ inputs.branch }} -->"
+        body-file: ${{ inputs.output }}

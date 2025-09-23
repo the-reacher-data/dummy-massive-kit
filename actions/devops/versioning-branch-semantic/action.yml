@@ -26,7 +26,7 @@ runs:
     - name: Install dependencies
       uses: ./actions/python/uv-requirements
       with:
-        requirements: ./actions/devops/versioning-branch-semantic/requirements.txt
+        requirements: ${{ github.action_path }}/requirements.txt
 
     - name: Calculate version
       id: version
