@@ -71,15 +71,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output: changelog_preview.md
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install UV
-        uses: astral-sh/setup-uv@v3
-
-      - name: Sync Dependencies
-        run: uv sync --extra dev
-
       - name: Publish Package
         uses: ./actions/python/publish-package
         if: ${{ steps.version.outputs.deploy == 'true' }}
