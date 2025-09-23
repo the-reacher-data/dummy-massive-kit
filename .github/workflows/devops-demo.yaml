@@ -72,15 +72,15 @@ jobs:
           output: changelog_preview.md
 
       - name: Build package
-        if: steps.version.outputs.deploy == 'true'
+        if: ${{ steps.version.outputs.deploy == 'true' }}
         run: uv run python -m build
 
       - name: Check built distributions
-        if: steps.version.outputs.deploy == 'true'
+        if: ${{ steps.version.outputs.deploy == 'true' }}
         run: uv run twine check dist/*
 
       - name: Publish to TestPyPI
-        if: steps.version.outputs.deploy == 'true'
+        if: ${{ steps.version.outputs.deploy == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: ${{env.PYPI_URL}}
