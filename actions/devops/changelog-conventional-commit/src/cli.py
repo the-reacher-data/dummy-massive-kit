@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import List, Dict
 from jinja2 import Environment, FileSystemLoader
 
-DEFAULT_TEMPLATE = str(Path(__file__).parent / "templates" / "default.md.j2")
+DEFAULT_TEMPLATE = str(Path(__file__).parent / "templates" / "report.md.j2")
 
 def get_commits_pr(branch: str) -> List[str]:
     """Get commit messages for PR branch compared to origin/main."""
