@@ -12,4 +12,4 @@ runs:
       shell: bash
       run: |
         echo "📦 Installing dependencies from ${{ inputs.requirements }}"
-        uv pip install -r "${{ inputs.requirements }}"
+        uv pip install --requirements "${{ inputs.requirements }}"
