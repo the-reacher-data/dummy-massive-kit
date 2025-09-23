@@ -10,16 +10,7 @@ inputs:
     required: true
   pypi-secret:
     description: "PyPI secret"
-    required: true
-
-
-outputs:
-  version:
-    value: ${{ steps.version.outputs.version }}
-    description: "Calculated version string"
-  deploy:
-    value: ${{ steps.version.outputs.deploy }}
-    description: "Whether this branch should trigger a deploy (true/false)"
+    required: tru
 
 runs:
   using: composite
