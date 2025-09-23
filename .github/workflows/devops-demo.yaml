@@ -87,4 +87,5 @@ jobs:
           pypi-url: ${{ env.PYPI_URL }}
           pypi-user-name: ${{ env.PYPI_USER_NAME }}
           pypi-secret: ${{ env.PYPI_SECRET }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 

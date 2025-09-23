@@ -11,6 +11,9 @@ inputs:
   pypi-secret:
     description: "PyPI secret"
     required: true
+  github-token:
+    description: "GitHub token"
+    required: true
 
 outputs:
   version:
@@ -40,7 +43,7 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ inputs.github-token }}
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
