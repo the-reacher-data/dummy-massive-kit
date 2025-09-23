@@ -79,7 +79,7 @@ def cli():
     version, deploy = calc_next_version(cfg, args.branch, prerelease, current)
 
     # update only for release mode
-    if not prerelease and deploy and Path(args.config).name == "pyproject.toml":
+    if  deploy and Path(args.config).name == "pyproject.toml":
         update_pyproject(data, Path(args.config), version)
 
     print(f"version={version}")
