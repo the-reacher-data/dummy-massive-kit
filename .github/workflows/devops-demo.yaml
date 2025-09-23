@@ -13,7 +13,7 @@ jobs:
     name: Prerelease Python
     runs-on: ubuntu-latest
     env:
-      PYPI_URL: ${{ inputs.repository-url || 'https://upload.pypi.org/legacy/' }}
+      PYPI_URL: ${{ inputs.repository-url || 'https://test.pypi.org/legacy/' }}
       PYPI_SECRET: ${{ inputs.pypi-secret || secrets.TEST_PYPI_API_TOKEN }}
       PYPI_USER_NAME: ${{ inputs.user-name || '__token__' }}
     steps:
