@@ -23,8 +23,10 @@ inputs:
     required: false
 
 outputs:
-  changelog:
-    description: "Generated changelog markdown"
+  changelog_b64:
+    description: "Generated changelog markdown (base64-encoded)"
+  output_path:
+    description: "Path to the generated markdown file"
 
 runs:
   using: "composite"
@@ -35,9 +37,11 @@ runs:
         requirements: ${{ github.action_path }}/requirements.txt
 
     - name: Generate changelog
-      id: changelog
+      id: gen
       shell: bash
       run: |
+        set -euo pipefail
+
         args="--mode ${{ inputs.mode }} --branch ${{ inputs.branch }} --output ${{ inputs.output }}"
         if [ -n "${{ inputs.version }}" ]; then
           args="$args --version ${{ inputs.version }}"
@@ -46,13 +50,13 @@ runs:
           args="$args --template ${{ inputs.template }}"
         fi
 
-        uv run python ${{ github.action_path }}/src/cli.py $args
+        uv run python "${{ github.action_path }}/src/cli.py" $args
 
-        delimiter="EOF$(date +%s)"
+        # Safe output: base64 (avoids multiline delimiter issues)
+        b64=$(base64 -w0 "${{ inputs.output }}")
         {
-          echo "changelog<<$delimiter"
-          cat "${{ inputs.output }}"
-          echo "$delimiter"
+          echo "changelog_b64=$b64"
+          echo "output_path=${{ inputs.output }}"
         } >> "$GITHUB_OUTPUT"
 
     - name: Update PR comment

@@ -8,8 +8,7 @@
 {% for scope, items in commits["feat"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
@@ -22,8 +21,7 @@
 {% for scope, items in commits["fix"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
@@ -36,8 +34,7 @@
 {% for scope, items in commits["docs"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
@@ -50,8 +47,7 @@
 {% for scope, items in commits["style"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
@@ -64,8 +60,7 @@
 {% for scope, items in commits["refactor"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
@@ -78,8 +73,7 @@
 {% for scope, items in commits["perf"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
@@ -92,8 +86,7 @@
 {% for scope, items in commits["test"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
@@ -106,8 +99,7 @@
 {% for scope, items in commits["chore"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
@@ -120,8 +112,7 @@
 {% for scope, items in commits["other"].items() %}
 ### {{ scope }}
 {% for c in items %}
-- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}
-  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+- {% if c.scope != "(no scope)" %}**{{ c.scope }}:** {% endif %}{{ c.title }}{% if not squash and c.sha %} ([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
   {% if c.body %}
   > {{ c.body | replace('\n', '\n  > ') }}
   {% endif %}
