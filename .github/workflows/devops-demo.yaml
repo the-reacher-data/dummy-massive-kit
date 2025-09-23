@@ -67,3 +67,12 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output: changelog_preview.md
 
+      - name: Test Changelog Conventional Commit
+        uses: ./actions/devops/changelog-conventional-commit
+        with:
+          mode: "release"
+          branch: ${{ github.head_ref }}
+          version: ${{ steps.version.outputs.version }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          output: CHANGELOG.md
+
