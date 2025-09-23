@@ -29,7 +29,6 @@ runs:
         requirements: ${{ github.action_path }}/requirements.txt
 
     - name: Calculate version
-      id: version
       shell: bash
       run: |
         result=$(uv run python ${{ github.action_path }}/src/cli.py \
