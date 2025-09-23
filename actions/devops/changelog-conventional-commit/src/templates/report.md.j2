@@ -1,64 +1,112 @@
 # 🚀 {{ version }}
+{% if squash %}
+(commit [`{{ squash.sha }}`]({{ repo_url }}/commit/{{ squash.sha_full }}))
+{% endif %}
 
 {% if commits.get("feat") %}
 ## ✨ Features
-{% for m in commits["feat"] %}
-- {{ m }}
+{% for scope, items in commits["feat"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
 {% if commits.get("fix") %}
 ## 🐛 Fixes
-{% for m in commits["fix"] %}
-- {{ m }}
+{% for scope, items in commits["fix"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
 {% if commits.get("docs") %}
 ## 📖 Documentation
-{% for m in commits["docs"] %}
-- {{ m }}
+{% for scope, items in commits["docs"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
 {% if commits.get("style") %}
 ## 🎨 Style
-{% for m in commits["style"] %}
-- {{ m }}
+{% for scope, items in commits["style"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
 {% if commits.get("refactor") %}
 ## ♻️ Refactor
-{% for m in commits["refactor"] %}
-- {{ m }}
+{% for scope, items in commits["refactor"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
 {% if commits.get("perf") %}
 ## ⚡ Performance
-{% for m in commits["perf"] %}
-- {{ m }}
+{% for scope, items in commits["perf"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
 {% if commits.get("test") %}
 ## ✅ Tests
-{% for m in commits["test"] %}
-- {{ m }}
+{% for scope, items in commits["test"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
 {% if commits.get("chore") %}
 ## 🛠 Chore
-{% for m in commits["chore"] %}
-- {{ m }}
+{% for scope, items in commits["chore"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
 {% if commits.get("other") %}
 ## 🔖 Other
-{% for m in commits["other"] %}
-- {{ m }}
+{% for scope, items in commits["other"].items() %}
+### {{ scope }}
+{% for c in items %}
+- {{ c.title }}
+  {% if c.body %}> {{ c.body | replace('\n', '\n  > ') }}{% endif %}
+  {% if not squash and c.sha %}([`{{ c.sha }}`]({{ repo_url }}/commit/{{ c.sha_full }})){% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
