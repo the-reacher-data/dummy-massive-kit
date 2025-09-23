@@ -1,0 +1,42 @@
+name: "Publish Package"
+description: "Build package and publish to PyPI"
+
+inputs:
+  pypi-url:
+    description: "PyPI URL"
+    required: true
+  pypi-user-name:
+    description: "PyPI user name"
+    required: true
+  pypi-secret:
+    description: "PyPI secret"
+    required: true
+
+outputs:
+  version:
+    value: ${{ steps.version.outputs.version }}
+    description: "Calculated version string"
+  deploy:
+    value: ${{ steps.version.outputs.deploy }}
+    description: "Whether this branch should trigger a deploy (true/false)"
+
+runs:
+  using: composite
+  steps:
+    - uses: ./actions/python/uv-requirements
+      with:
+        requirements: ${{ github.action_path }}/requirements.txt
+
+    - name: Build package
+      run: uv run python -m build
+
+    - name: Check built distributions
+      run: uv run twine check dist/*
+
+    - name: Publish to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: ${{inputs.pypi-url}}
+        user: ${{inputs.pypi-user-name}}
+        password: ${{inputs.pypi-secret}}
+        skip-existing: true  

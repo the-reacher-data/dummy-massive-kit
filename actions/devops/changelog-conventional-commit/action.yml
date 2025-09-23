@@ -24,8 +24,10 @@ inputs:
 
 outputs:
   changelog_b64:
+    value: ${{ steps.gen.outputs.changelog_b64 }}
     description: "Generated changelog markdown (base64-encoded)"
   output_path:
+    value: ${{ steps.gen.outputs.output_path }}
     description: "Path to the generated markdown file"
 
 runs:

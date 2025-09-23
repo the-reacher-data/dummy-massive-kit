@@ -76,20 +76,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output: changelog_preview.md
 
-      - name: Build package
+      - name: Publish Package
+        uses: ./actions/python/publish-package
         if: ${{ steps.version.outputs.deploy == 'true' }}
-        run: uv run python -m build
-
-      - name: Check built distributions
-        if: ${{ steps.version.outputs.deploy == 'true' }}
-        run: uv run twine check dist/*
-
-      - name: Publish to TestPyPI
-        if: ${{ steps.version.outputs.deploy == 'true' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: ${{env.PYPI_URL}}
-          user: ${{env.PYPI_USER_NAME}}
-          password: ${{env.PYPI_SECRET}}
-          skip-existing: true  
+          pypi-url: ${{ env.PYPI_URL }}
+          pypi-user-name: ${{ env.PYPI_USER_NAME }}
+          pypi-secret: ${{ env.PYPI_SECRET }}
 
