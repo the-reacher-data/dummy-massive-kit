@@ -65,4 +65,5 @@ jobs:
           branch: ${{ github.head_ref }}
           version: ${{ steps.version.outputs.version }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          output: changelog_preview.md
 

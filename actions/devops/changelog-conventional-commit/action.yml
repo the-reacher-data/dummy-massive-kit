@@ -14,7 +14,6 @@ inputs:
   template:
     description: "Path to Jinja2 template (optional, uses default if not set)"
     required: false
-    default: ${{ github.action_path }}/src/templates/report.md.j2
   output:
     description: "Output Markdown file"
     required: false
