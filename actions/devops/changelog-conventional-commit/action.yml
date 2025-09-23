@@ -48,9 +48,10 @@ runs:
 
         uv run python ${{ github.action_path }}/src/cli.py $args
 
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        delimiter=$(uuidgen)
+        echo "changelog<<$delimiter" >> $GITHUB_OUTPUT
         cat "${{ inputs.output }}" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        echo "$delimiter" >> $GITHUB_OUTPUT
 
     - name: Update PR comment
       if: ${{ inputs.mode == 'pr' }}
