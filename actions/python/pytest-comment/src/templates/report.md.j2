@@ -44,8 +44,8 @@ _No failed tests 🎉_
 
 | File | Coverage |
 |------|----------|
-{% for path, pct in under_files %}
-| `{{ path }}` | {{ pct }}% |
+{% for f in under_files %}
+| `{{ f.path }}` | {{ f.percent }}% |
 {% endfor %}
 {% if under_files|length == 0 %}
 _All files meet coverage requirements ✅_
