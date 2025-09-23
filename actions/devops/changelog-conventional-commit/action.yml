@@ -17,7 +17,8 @@ inputs:
     default: ${{ github.action_path }}/src/templates/report.md.j2
   output:
     description: "Output Markdown file"
-    required: true
+    required: false
+    default: changelog_preview.md
   github-token:
     description: "GitHub token (only needed in PR mode)"
     required: false
