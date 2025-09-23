@@ -12,6 +12,10 @@ jobs:
   prerelease-python:
     name: Prerelease Python
     runs-on: ubuntu-latest
+    env:
+      PYPI_URL: ${{ inputs.repository-url || 'https://upload.pypi.org/legacy/' }}
+      PYPI_SECRET: ${{ inputs.pypi-secret || secrets.TEST_PYPI_API_TOKEN }}
+      PYPI_USER_NAME: ${{ inputs.user-name || '__token__' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,12 +71,20 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output: changelog_preview.md
 
-      - name: Test Changelog Conventional Commit
-        uses: ./actions/devops/changelog-conventional-commit
+      - name: Build package
+        if: steps.version.outputs.deploy == 'true'
+        run: uv run python -m build
+
+      - name: Check built distributions
+        if: steps.version.outputs.deploy == 'true'
+        run: uv run twine check dist/*
+
+      - name: Publish to TestPyPI
+        if: steps.version.outputs.deploy == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          mode: "release"
-          branch: ${{ github.head_ref }}
-          version: ${{ steps.version.outputs.version }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          output: CHANGELOG.md
+          repository-url: ${{env.PYPI_URL}}
+          user: ${{env.PYPI_USER_NAME}}
+          password: ${{env.PYPI_SECRET}}
+          skip-existing: true  
 
