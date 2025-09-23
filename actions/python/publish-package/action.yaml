@@ -28,9 +28,11 @@ runs:
         requirements: ${{ github.action_path }}/requirements.txt
 
     - name: Build package
+      shell: bash
       run: uv run python -m build
 
     - name: Check built distributions
+      shell: bash
       run: uv run twine check dist/*
 
     - name: Publish to TestPyPI
