@@ -24,9 +24,9 @@ runs:
   using: "composite"
   steps:
     - name: Install dependencies
-      uses: ../uv-requirements
+      uses: ./actions/python/uv-requirements
       with:
-        requirements: ${{ github.action_path }}/requirements.txt
+        requirements: ./actions/devops/versioning-branch-semantic/requirements.txt
 
     - name: Calculate version
       id: version
