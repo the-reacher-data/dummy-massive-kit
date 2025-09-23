@@ -53,23 +53,11 @@ runs:
 
     - name: Post / update PR comment
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
+      uses: ./actions/devops/pr-comment-update
       with:
         github-token: ${{ inputs.github-token }}
-        script: |
-          const fs = require('fs');
-          const body = fs.readFileSync('lint_report.md', 'utf8');
-          const tag = '<!-- massive-devops-lint -->';
-          const full = tag + '\n' + body;
-          const { owner, repo } = context.repo;
-          const issue_number = context.issue.number;
-          const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
-          const existing = comments.find(c => c.body && c.body.includes(tag));
-          if (existing) {
-            await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: full });
-          } else {
-            await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
-          }
+        tags: "<!-- massive-devops-lint -->"
+        body-file: lint_report.md
 
     - name: Fail if blocking
       if: always()

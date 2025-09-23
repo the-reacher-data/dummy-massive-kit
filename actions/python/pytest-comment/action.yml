@@ -73,28 +73,12 @@ runs:
 
     - name: Post / update PR comment
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      env:
-        BODY_FILE: pytest_comment.md
+      uses: ./actions/devops/pr-comment-update
       with:
         github-token: ${{ inputs.github-token }}
-        script: |
-          const fs = require('fs');
-          const body = fs.readFileSync(process.env.BODY_FILE, 'utf8');
-          const tag = '<!-- massive-devops-pytest -->';
-          const full = tag + '\n' + body;
+        tags: "<!-- massive-devops-pytest -->"
+        body-file: pytest_comment.md
 
-          const { owner, repo } = context.repo;
-          const issue_number = context.issue.number;
-
-          const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
-          const existing = comments.find(c => c.body && c.body.includes(tag));
-
-          if (existing) {
-            await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: full });
-          } else {
-            await github.rest.issues.createComment({ owner, repo, issue_number, body: full });
-          }
 
     - name: Fail if below threshold or tests failed
       if: always()

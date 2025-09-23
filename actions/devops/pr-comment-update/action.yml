@@ -1,0 +1,66 @@
+name: "PR Comment Update"
+description: "Create or update a PR/Issue comment identified by hidden HTML tags"
+
+inputs:
+  github-token:
+    description: "GitHub token (GITHUB_TOKEN secret)"
+    required: true
+  tags:
+    description: "Comma-separated list of hidden HTML tags to include (e.g. <!-- my-tag -->,<!-- branch-source:foo -->)"
+    required: true
+  body-file:
+    description: "Path to the Markdown file with the body content"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Update or create comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+          const tags = `${{ inputs.tags }}`.split(',').map(t => t.trim()).filter(Boolean);
+          if (tags.length === 0) {
+            core.setFailed("❌ No tags provided. At least one tag is required.");
+          }
+
+          core.info(`🔖 Tags to enforce: ${tags.join(', ')}`);
+
+          const body = fs.readFileSync('${{ inputs.body-file }}', 'utf8');
+          core.info(`📝 Loaded body from: ${{ inputs.body-file }} (length: ${body.length} chars)`);
+
+          const tagBlock = tags.join('\n');
+          const full = tagBlock + '\n' + body;
+
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+
+          core.info(`📌 Checking comments in ${owner}/${repo}#${issue_number}...`);
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner, repo, issue_number
+          });
+
+          core.info(`💬 Found ${comments.length} existing comments.`);
+
+          const existing = comments.find(c =>
+            c.body && tags.every(t => c.body.includes(t))
+          );
+
+          if (existing) {
+            core.info(`🔄 Updating existing comment (id=${existing.id})`);
+            await github.rest.issues.updateComment({
+              owner, repo,
+              comment_id: existing.id,
+              body: full
+            });
+            core.info("✅ Comment updated successfully.");
+          } else {
+            core.info("➕ Creating a new comment.");
+            await github.rest.issues.createComment({
+              owner, repo, issue_number, body: full
+            });
+            core.info("✅ Comment created successfully.");
+          }
