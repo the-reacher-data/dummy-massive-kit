@@ -50,16 +50,14 @@ on:
         required: false
         type: string
         default: "__token__"
-
+    secrets:   # 👈 definición correcta de secretos
       pypi-secret:
         description: "PyPI secret/token"
         required: true
-        type: string
-      
       github-token:
         description: "GitHub token"
         required: true
-        type: string
+
 
 permissions:
   contents: read
@@ -86,7 +84,7 @@ jobs:
         uses: ./actions/python/linter-comment
         with:
           src-dir: ${{ inputs.src-dir }}
-          github-token: ${{ inputs.github-token }}
+          github-token: ${{ secrets.github-token }}
           fail-on: ${{ inputs.linter-fail-on }}
 
   security:
@@ -110,7 +108,7 @@ jobs:
         with:
           src-dir: ${{ inputs.src-dir }}
           fail-on: ${{ inputs.security-fail-on }}
-          github-token: ${{ inputs.github-token }}
+          github-token: ${{ secrets.github-token }}
 
   test:
     name: 🧪 Tests & Coverage
@@ -131,7 +129,7 @@ jobs:
       - name: Pytest Comment
         uses: ./actions/python/pytest-comment
         with:
-          github-token: ${{ inputs.github-token }}
+          github-token: ${{ secrets.github-token }}
           test-dir: ${{ inputs.test-dir }}
           src-dir: ${{ inputs.src-dir }}
           coverage-threshold: ${{ inputs.coverage-threshold }}
@@ -166,7 +164,7 @@ jobs:
           mode: "pr"
           branch: ${{ github.head_ref }}
           version: ${{ steps.version.outputs.version }}
-          github-token: ${{ inputs.github-token }}
+          github-token: ${{ secrets.github-token }}
           output: changelog_preview.md
 
       - name: Publish Package
@@ -175,4 +173,4 @@ jobs:
         with:
           pypi-url: ${{ inputs.pypi-url }}
           pypi-user-name: ${{ inputs.pypi-user-name }}
-          pypi-secret: ${{ inputs.pypi-secret }}
+          pypi-secret: ${{ secrets.pypi-secret }}
