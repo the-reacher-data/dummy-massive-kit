@@ -9,6 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pr-number: ${{ steps.extract.outputs.pr-number }}
+    permissions:
+      contents: read
+      pull-requests: read
+
     steps:
       - name: Find PR number for this commit
         id: extract
