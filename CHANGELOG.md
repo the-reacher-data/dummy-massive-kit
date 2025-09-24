@@ -1,3 +1,16 @@
+# 🚀 Release 0.4.0 (commit [`56b6bd7`](https://github.com/the-reacher-data/dummy-massive-kit/commit/56b6bd7b88dedc58062bdf5fc17b0f09b99cf181))
+
+
+
+
+
+
+
+
+
+
+
+
 # 🚀 Release 0.3.0 (commit [`edba38e`](https://github.com/the-reacher-data/dummy-massive-kit/commit/edba38ea8bdc71ba384900214efa77d97f77fc55))
 
 
