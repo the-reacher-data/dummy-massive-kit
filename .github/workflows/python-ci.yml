@@ -57,6 +57,9 @@ on:
       github-token:
         description: "GitHub token"
         required: true
+      codecov-token:
+        description: "Codecov token"
+        required: false
 
 
 permissions:
@@ -133,6 +136,7 @@ jobs:
           test-dir: ${{ inputs.test-dir }}
           src-dir: ${{ inputs.src-dir }}
           coverage-threshold: ${{ inputs.coverage-threshold }}
+          codecov-token: ${{ secrets.codecov-token }}
 
   build_and_publish:
     name: 🚀 Prerelease & Publish

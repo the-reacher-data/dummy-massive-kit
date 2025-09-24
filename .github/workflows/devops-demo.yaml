@@ -20,4 +20,5 @@ jobs:
     secrets: 
       pypi-secret: ${{ secrets.TEST_PYPI_API_TOKEN }}
       github-token: ${{ secrets.GITHUB_TOKEN }}
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
