@@ -149,9 +149,6 @@ def main():
         previous = changelog.read_text(encoding="utf-8") if changelog.exists() else ""
         changelog.write_text((md + "\n\n" + previous).rstrip() + "\n", encoding="utf-8")
 
-        subprocess.run(["git", "add", "CHANGELOG.md"], check=False)
-        subprocess.run(["git", "commit", "-m", f"chore(release): {title}"], check=False)
-
     Path(args.output).write_text(md, encoding="utf-8")
     print(md)
 

@@ -55,6 +55,11 @@ on:
         required: false
         type: string
         default: "docs"
+      src-dir-docs:
+        description: "Source documentation directory"
+        required: false
+        type: string
+        default: "src"
     secrets:   # 👈 definición correcta de secretos
       pypi-secret:
         description: "PyPI secret/token"
@@ -201,6 +206,6 @@ jobs:
       - name: Autogenerate Docs
         uses: ./actions/python/autogenerate-docs
         with:
-          src-dir: ${{ inputs.src-dir }}
+          src-dir: ${{ inputs.src-dir-docs }}
           docs-dir: ${{ inputs.docs-dir }}
           mode: "pr"
