@@ -8,8 +8,8 @@ on:
         required: false
         default: "3.11"
         type: string
-      pr_number:
-        description: "PR number that triggered the release"
+      github-sha:
+        description: "GitHub SHA that triggered the release"
         required: true
         type: string
       pypi-url:
@@ -51,6 +51,39 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Find merged PR number
+        id: extract-pr-number
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.github-token }}
+        run: |
+          echo "🔎 Searching PR for squash commit ${{ inputs.github-sha }}"
+          pr_number=$(gh pr list \
+          --repo ${{ github.repository }} \
+          --base main \
+          --state closed \
+          --json number,mergeCommit \
+          --jq '.[] | select(.mergeCommit.oid=="'${{ inputs.github-sha }}'") | .number')
+
+          if [ -z "$pr_number" ]; then
+            echo "⚠️ No PR found with mergeCommit=${{ inputs.github-sha }}"
+            echo "🔄 Falling back to latest closed PR targeting main..."
+            pr_number=$(gh pr list \
+            --repo ${{ github.repository }} \
+            --base main \
+            --state closed \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number')
+          fi
+
+          if [ -z "$pr_number" ]; then
+            echo "❌ Still no PR found. Exiting."
+            exit 1
+          fi
+
+          echo "✅ Found PR: $pr_number"
+          echo "pr-number=$pr_number" >> $GITHUB_OUTPUT
 
       - id: extract
         name: Find branch from PR comment
@@ -58,19 +91,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.github-token }}
         run: |
-          echo "Fetching PR (${{ inputs.pr_number }}) comments..."
-          comments=$(gh api repos/${{ github.repository }}/issues/${{ inputs.pr_number }}/comments --jq '.[].body')
+          echo "Fetching PR (${{ steps.extract-pr-number.outputs.pr-number }}) comments..."
+          comments=$(gh api repos/${{ github.repository }}/issues/${{ steps.extract-pr-number.outputs.pr-number }}/comments --jq '.[].body')
           branch=$(echo "$comments" | grep -o '<!-- branch-source:[^>]* -->' | sed -E 's/<!-- branch-source:(.*) -->/\1/' | tail -n 1)
           echo "Comments: $comments"
           if [ -z "$branch" ]; then
-            echo "❌ No branch-source tag found in PR ${{ inputs.pr_number }}"
+            echo "❌ No branch-source tag found in PR ${{ steps.extract-pr-number.outputs.pr-number }}"
             exit 1
           fi
           echo "✅ Found branch: $branch"
           echo "branch=$branch" >> $GITHUB_OUTPUT
 
-
-  build-version:
+  build_package:
     name: 📝 Generate Version
     runs-on: ubuntu-latest
     needs: [detect-branch]
@@ -101,6 +133,14 @@ jobs:
           branch: ${{ needs.detect-branch.outputs.branch }}
           version: ${{ steps.version.outputs.version }}
           output: version.md
+      
+      - name: 🚀 Publish Package
+        if: ${{ steps.version.outputs.deploy == 'true' }}
+        uses: ./actions/python/publish-package
+        with:
+          pypi-url: ${{ inputs.pypi-url }}
+          pypi-user-name: ${{ inputs.pypi-user-name }}
+          pypi-secret: ${{ secrets.pypi-secret }}
 
       - name: Commit version bump and changelog
         env:
@@ -124,11 +164,11 @@ jobs:
           git push
           echo "✅ Committed with changes"
 
-  publish:
-    name: 🚀 Publish Package
+  publish_docs:
+    name: 📚 Publish Docs
     runs-on: ubuntu-latest
-    needs: [build-version]
-    if: ${{ needs.build-version.outputs.deploy == 'true' }}
+    needs: [build_package]
+    if: ${{ needs.build_package.outputs.deploy == 'true' }} and github.event.repository.private == false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -138,17 +178,8 @@ jobs:
           python-version: ${{ inputs.python-version }}
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --all-extras --group dev
-
-      - name: Publish Package
-        uses: ./actions/python/publish-package
-        with:
-          pypi-url: ${{ inputs.pypi-url }}
-          pypi-user-name: ${{ inputs.pypi-user-name }}
-          pypi-secret: ${{ secrets.pypi-secret }}
-
       - name: Upload Docs
         uses: ./actions/python/upload-docs
-        if: github.event.repository.private == false
         with:
           docs-dir: ${{ inputs.docs-dir }}
           src-dir: ${{ inputs.src-dir-docs }}
@@ -157,15 +188,15 @@ jobs:
   tag:
     name: 🔖 Create Release Tag
     runs-on: ubuntu-latest
-    needs: [build-version, publish]
-    if: ${{ needs.build-version.outputs.deploy == 'true' }}
+    needs: [build_package]
+    if: ${{ needs.build_package.outputs.deploy == 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Create Git Tag
         env:
-          VERSION: ${{ needs.build-version.outputs.version }}
+          VERSION: ${{ needs.build_package.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -175,7 +206,7 @@ jobs:
   codeql:
     name: 🛡️ CodeQL Analysis
     if: github.event.repository.private == false
-    needs: [tag, publish]
+    needs: [tag, build_package]
     runs-on: ubuntu-latest
     permissions:
       security-events: write
