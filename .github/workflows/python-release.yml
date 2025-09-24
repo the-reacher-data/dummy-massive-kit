@@ -116,13 +116,13 @@ jobs:
             exit 0
           fi
 
-          if $VERSION != "UNRELEASED"; then
+          if [[ "$VERSION" != "UNRELEASED" ]]; then
             git commit -m "chore(release): ${VERSION}"
           else
             git commit -m "docs(changelog): update changelog"
           fi
-
           git push
+          echo "✅ Committed with changes"
 
   publish:
     name: 🚀 Publish Package
