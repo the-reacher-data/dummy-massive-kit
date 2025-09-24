@@ -3,6 +3,9 @@ name: 🚀 Release Pipeline
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - "CHANGELOG.md"
+      - "pyproject.toml"
 
 jobs:
   find-pr:
@@ -12,7 +15,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-
     steps:
       - name: Find merged PR number
         id: extract
@@ -56,7 +58,7 @@ jobs:
       pypi-url: "https://upload.pypi.org/legacy/"
       pr_number: ${{ needs.find-pr.outputs.pr-number }}
     permissions:
-      contents: read
+      contents: write
       pull-requests: read
       id-token: write
       pages: write
