@@ -8,7 +8,7 @@ on:
         required: false
         default: "3.11"
         type: string
-      pr-number:
+      pr_number:
         description: "PR number that triggered the release"
         required: true
         type: string
@@ -54,11 +54,11 @@ jobs:
           GH_TOKEN: ${{ secrets.github-token }}
         run: |
           echo "Fetching PR comments..."
-          comments=$(gh api repos/${{ github.repository }}/issues/${{inputs.pr-number}}/comments --jq '.[].body')
+          comments=$(gh api repos/${{ github.repository }}/issues/$pr_number/comments --jq '.[].body')
           branch=$(echo "$comments" | grep -o '<!-- branch-source:[^>]* -->' | sed -E 's/<!-- branch-source:(.*) -->/\1/' | tail -n 1)
           echo "Comments: $comments"
           if [ -z "$branch" ]; then
-            echo "❌ No branch-source tag found in PR ${{ inputs.pr-number }}"
+            echo "❌ No branch-source tag found in PR ${{ inputs.pr_number }}"
             exit 1
           fi
           echo "✅ Found branch: $branch"
