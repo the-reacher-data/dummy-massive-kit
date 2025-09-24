@@ -53,6 +53,7 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 exclude = ["tests*"]
+include = ["mkit*"]
 
 # --- Ruff ---
 [tool.ruff]

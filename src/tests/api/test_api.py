@@ -1,6 +1,6 @@
 """Tests for the dummy API module."""
 
-from dummy_massivekit.api.dummy import Dummy
+from mkit.api.dummy import Dummy
 
 
 class TestApi:

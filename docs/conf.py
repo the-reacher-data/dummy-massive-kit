@@ -33,3 +33,6 @@ source_suffix = {
 }
 
 html_theme = "furo"
+
+autodoc_typehints = "description"
+add_module_names = False 
