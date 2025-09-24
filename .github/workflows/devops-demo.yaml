@@ -21,6 +21,7 @@ jobs:
           name: docs-preview
           path: docs/_build/html
   call-devops-ci:
+    needs: [docs]
     uses: ./.github/workflows/python-ci.yml
     with:
       python-version: "3.12"
