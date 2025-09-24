@@ -138,7 +138,7 @@ def main():
         commits = get_commits_pr(args.branch)
         grouped = group_commits(commits)
         title = args.version if not is_unreleased else f"Changelog preview for {args.branch}"
-        md = render(args.template, title, grouped, args.repo_url, squash=None)
+        md = render(args.template, title, grouped, args.repo_url, squash=None, is_unreleased=is_unreleased)
     else:
         squash = get_commit_squash()
         grouped = group_commits(squash["commits"])
