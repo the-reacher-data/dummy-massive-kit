@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "dummy_massivekit"
 version = "0.2.0"
@@ -8,8 +12,6 @@ requires-python = ">=3.11"
 authors = [{ name = "MassiveDataScope" }]
 keywords = ["fastapi", "clean-architecture", "solid", "omegaconf"]
 
-[build-system]
-requires = ["setuptools>=61.0", "wheel", "build"]
 
 dependencies = [
   "pydantic>=2.8",
