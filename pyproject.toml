@@ -8,6 +8,10 @@ requires-python = ">=3.11"
 authors = [{ name = "MassiveDataScope" }]
 keywords = ["fastapi", "clean-architecture", "solid", "omegaconf"]
 
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "build"]
+build-backend = "setuptools.build_meta"
+
 dependencies = [
   "pydantic>=2.8",
   "omegaconf>=2.3",
@@ -15,9 +19,6 @@ dependencies = [
   "anyio>=4.4",
 ]
 
-[build-system]
-requires = ["setuptools>=61.0", "wheel", "build"]
-build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 api = [
@@ -29,6 +30,9 @@ api = [
   "asyncpg>=0.29",
   "boto3>=1.34",
 ]
+
+
+[dependency-groups]
 dev = [
   "ruff>=0.6",
   "mypy>=1.11",
@@ -44,11 +48,6 @@ dev = [
   "pyupgrade>=3.15",
 
 ]
-
-[dependency-groups]
-ci = ["pytest-cov>=5.0", "ruff>=0.6", "mypy>=1.11", "bandit>=1.7"]
-build = ["build>=1.0", "twine>=5.0", "python-semantic-release>=9.0", "tomli>=2.0", "tomli-w>=1.0"]
-docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.25"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

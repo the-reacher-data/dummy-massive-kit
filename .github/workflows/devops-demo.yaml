@@ -1,81 +1,18 @@
-name: Massive DevOps Demo
+name: Project CI
 
 on:
   pull_request:
     branches: [ "main" ]
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
-  prerelease-python:
-    name: Prerelease Python
-    runs-on: ubuntu-latest
-    env:
-      PYPI_URL: ${{ inputs.repository-url || 'https://test.pypi.org/legacy/' }}
-      PYPI_SECRET: ${{ inputs.pypi-secret || secrets.TEST_PYPI_API_TOKEN }}
-      PYPI_USER_NAME: ${{ inputs.user-name || '__token__' }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.head_ref }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install UV
-        uses: astral-sh/setup-uv@v3
-
-      - name: Sync Dependencies
-        run: uv sync --extra dev
-      
-      - name: Run Ruff + MyPy Linter
-        uses: ./actions/python/linter-comment
-        with:
-          src-dir: src
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          fail-on: any
-
-      - name: Pytest Comment
-        uses: ./actions/python/pytest-comment
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          test-dir: "src/tests"
-          src-dir: "src"
-          coverage-threshold: "80"
-
-      - name: Security Comment
-        uses: ./actions/python/security-comment
-        with:
-          src-dir: src
-          fail-on: "low"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Versioning Branch Semantic
-        uses: ./actions/devops/versioning-branch-semantic
-        id: version
-        with:
-          branch: ${{ github.head_ref }}
-          prerelease: "true"
-      
-      - name: Changelog Conventional Commit
-        uses: ./actions/devops/changelog-conventional-commit
-        with:
-          mode: "pr"
-          branch: ${{ github.head_ref }}
-          version: ${{ steps.version.outputs.version }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          output: changelog_preview.md
-
-      - name: Publish Package
-        uses: ./actions/python/publish-package
-        if: ${{ steps.version.outputs.deploy == 'true' }}
-        with:
-          pypi-url: ${{ env.PYPI_URL }}
-          pypi-user-name: ${{ env.PYPI_USER_NAME }}
-          pypi-secret: ${{ env.PYPI_SECRET }}
+  call-devops-ci:
+    uses: ./.github/workflows/python-ci.yml
+    with:
+      python-version: "3.12"
+      src-dir: "src"
+      test-dir: "src/tests"
+      coverage-threshold: "85"
+      linter-fail-on: "any"
+      security-fail-on: "medium"
+      pypi-secret: ${{ secrets.TEST_PYPI_API_TOKEN }}
 

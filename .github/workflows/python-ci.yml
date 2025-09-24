@@ -1,0 +1,173 @@
+name: Massive DevOps CI
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version to use"
+        required: false
+        type: string
+        default: "3.11"
+
+      src-dir:
+        description: "Root source directory (used by lint, tests, and security)"
+        required: false
+        type: string
+        default: "src"
+
+      test-dir:
+        description: "Directory containing tests"
+        required: false
+        type: string
+        default: "src/tests"
+
+      coverage-threshold:
+        description: "Coverage threshold (percentage)"
+        required: false
+        type: string
+        default: "80"
+
+      linter-fail-on:
+        description: "Fail condition for Ruff/MyPy (none, any)"
+        required: false
+        type: string
+        default: "any"
+
+      security-fail-on:
+        description: "Fail condition for Bandit (none, low, medium, high)"
+        required: false
+        type: string
+        default: "low"
+
+      pypi-url:
+        description: "PyPI repository URL"
+        required: false
+        type: string
+        default: "https://test.pypi.org/legacy/"
+
+      pypi-user-name:
+        description: "PyPI username (usually __token__)"
+        required: false
+        type: string
+        default: "__token__"
+
+      pypi-secret:
+        description: "PyPI secret/token"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lint:
+    name: 🧹 Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras --group dev
+
+      - name: Ruff + MyPy Comment
+        uses: ./actions/python/linter-comment
+        with:
+          src-dir: ${{ inputs.src-dir }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on: ${{ inputs.linter-fail-on }}
+
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --extra dev
+
+      - name: Bandit Comment
+        uses: ./actions/python/security-comment
+        with:
+          src-dir: ${{ inputs.src-dir }}
+          fail-on: ${{ inputs.security-fail-on }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    name: 🧪 Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras --group dev
+
+      - name: Pytest Comment
+        uses: ./actions/python/pytest-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          test-dir: ${{ inputs.test-dir }}
+          src-dir: ${{ inputs.src-dir }}
+          coverage-threshold: ${{ inputs.coverage-threshold }}
+
+  build_and_publish:
+    name: 🚀 Prerelease & Publish
+    runs-on: ubuntu-latest
+    needs: [lint, security, test]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras --group dev
+
+      - name: Versioning Branch Semantic
+        id: version
+        uses: ./actions/devops/versioning-branch-semantic
+        with:
+          branch: ${{ github.head_ref }}
+          prerelease: "true"
+
+      - name: Changelog Conventional Commit
+        uses: ./actions/devops/changelog-conventional-commit
+        with:
+          mode: "pr"
+          branch: ${{ github.head_ref }}
+          version: ${{ steps.version.outputs.version }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          output: changelog_preview.md
+
+      - name: Publish Package
+        if: ${{ steps.version.outputs.deploy == 'true' }}
+        uses: ./actions/python/publish-package
+        with:
+          pypi-url: ${{ inputs.pypi-url }}
+          pypi-user-name: ${{ inputs.pypi-user-name }}
+          pypi-secret: ${{ inputs.pypi-secret }}
