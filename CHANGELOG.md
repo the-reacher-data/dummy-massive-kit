@@ -1,3 +1,21 @@
+# 🚀 Release 0.3.0 (commit [`edba38e`](https://github.com/the-reacher-data/dummy-massive-kit/commit/edba38ea8bdc71ba384900214efa77d97f77fc55))
+
+
+
+
+
+
+
+
+## ✅ Tests
+### changelog
+- **changelog:** refactor bump
+- **changelog:** change coverage threshold
+
+
+
+
+
 # ✨ Unreleased (commit [`5015b4d`](https://github.com/the-reacher-data/dummy-massive-kit/commit/5015b4d5a7af1529d57d5c7cecc3e435565e3a99))
 
 
