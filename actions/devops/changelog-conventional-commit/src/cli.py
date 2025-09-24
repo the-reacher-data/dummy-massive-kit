@@ -157,7 +157,6 @@ def render(
         is_unreleased=is_unreleased,
     )
 
-
 def main() -> None:
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(description="Generate changelog from conventional commits")
@@ -171,6 +170,7 @@ def main() -> None:
 
     is_unreleased = str(args.version).upper() == "UNRELEASED"
 
+    is_unreleased = str(args.version).upper() == "UNRELEASED" 
     if args.mode == "pr":
         commits = get_commits_pr(args.branch)
         grouped = group_commits(commits)

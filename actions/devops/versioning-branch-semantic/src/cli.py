@@ -55,6 +55,7 @@ def bump(branch: str, cfg: SemanticBranchConfig, current: str) -> str:
         minor = 0
         patch = 0
     elif matches(branch, cfg.get("patch")):
+
         patch += 1
 
     return f"{major}.{minor}.{patch}"
@@ -76,7 +77,6 @@ def calc_next_version(
         return VERSION_UNRELEASED, False
 
     next_version = bump(branch, cfg, current)
-
     if prerelease and matches(branch, cfg.get("prerelease")):
         count = subprocess.check_output(
             ["git", "rev-list", "--count", "HEAD"],
@@ -127,11 +127,11 @@ def main() -> None:
 
         print(f"version={version}")
         print(f"deploy={'true' if deploy else 'false'}")
-
     except ConfigError as e:
         sys.exit(str(e))
     except Exception as e:
         sys.exit(f"❌ Unexpected error: {e}")
+
 
 
 if __name__ == "__main__":
