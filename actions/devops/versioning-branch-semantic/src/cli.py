@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 import argparse
-import re
-import subprocess
 import sys
-import tomllib
+import subprocess
 from pathlib import Path
-
+import tomllib
 import tomli_w
-
+import re
 
 def load_config(path: str) -> dict:
     f = Path(path)
@@ -15,30 +13,24 @@ def load_config(path: str) -> dict:
         sys.exit(f"❌ Config file not found: {path}")
     return tomllib.loads(f.read_text(encoding="utf-8"))
 
-
-def matches(branch: str, patterns) -> bool:
+def matches(branch: str, patterns: list[str]) -> bool:
     if not patterns:
         return False
     if isinstance(patterns, str):
         patterns = [patterns]
     return any(re.fullmatch(p, branch) for p in patterns)
 
-
 def bump(base: str, part: str) -> str:
     major, minor, patch = map(int, base.split("."))
     if part == "major":
-        major += 1
-        minor = 0
-        patch = 0
+        major += 1; minor = 0; patch = 0
     elif part == "minor":
-        minor += 1
-        patch = 0
+        minor += 1; patch = 0
     elif part == "patch":
         patch += 1
     return f"{major}.{minor}.{patch}"
 
-
-def calc_next_version(cfg: dict, branch: str, prerelease: bool, current: str) -> tuple[str, bool]:
+def calc_next_version(cfg: dict, branch: str, prerelease: bool, current: str) -> tuple[str,bool]:
     # ignore rules
     if prerelease and matches(branch, cfg.get("prerelease-ignore", [])):
         return current, False
@@ -56,7 +48,9 @@ def calc_next_version(cfg: dict, branch: str, prerelease: bool, current: str) ->
     nextv = bump(current, bump_type)
 
     if prerelease and matches(branch, cfg.get("prerelease", [])):
-        count = subprocess.check_output(["git", "rev-list", "--count", "HEAD"], text=True).strip()
+        count = subprocess.check_output(
+            ["git", "rev-list", "--count", "HEAD"], text=True
+        ).strip()
         return f"{nextv}.dev{count}", True
     if not prerelease:
         return nextv, True
@@ -68,7 +62,6 @@ def update_pyproject(data: dict, path: Path, new_version: str):
         data["project"] = {}
     data["project"]["version"] = new_version
     path.write_text(tomli_w.dumps(data), encoding="utf-8")
-
 
 def cli():
     parser = argparse.ArgumentParser()
@@ -85,12 +78,11 @@ def cli():
     version, deploy = calc_next_version(cfg, args.branch, prerelease, current)
 
     # update only for release mode
-    if deploy and Path(args.config).name == "pyproject.toml":
+    if  deploy and Path(args.config).name == "pyproject.toml":
         update_pyproject(data, Path(args.config), version)
 
     print(f"version={version}")
     print(f"deploy={'true' if deploy else 'false'}")
-
 
 if __name__ == "__main__":
     cli()
