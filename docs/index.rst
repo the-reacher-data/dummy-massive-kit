@@ -1,13 +1,14 @@
-.. Dummy Massive Kit documentation master file
-
 Welcome to Dummy Massive Kit’s documentation!
 =============================================
 
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: API Reference:
 
-   dummy_massivekit
+   api/index
 
 Indices and tables
 ==================
