@@ -57,6 +57,7 @@ jobs:
       python-version: "3.12"
       pypi-url: "https://upload.pypi.org/legacy/"
       pr_number: ${{ needs.find-pr.outputs.pr-number }}
+      src-dir-docs: "src/mkit"
     permissions:
       contents: write
       pull-requests: read

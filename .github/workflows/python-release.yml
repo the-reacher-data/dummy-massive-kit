@@ -27,6 +27,11 @@ on:
         required: false
         default: "docs"
         type: string
+      src-dir-docs:
+        description: "Source directory to files py"
+        required: false
+        default: "src"
+        type: string
     secrets:
       pypi-secret:
         description: "PyPI secret/token"
@@ -146,6 +151,7 @@ jobs:
         if: github.event.repository.private == false
         with:
           docs-dir: ${{ inputs.docs-dir }}
+          src-dir: ${{ inputs.src-dir-docs }}
           mode: "release"
 
   tag:
