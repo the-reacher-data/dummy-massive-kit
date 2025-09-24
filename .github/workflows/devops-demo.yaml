@@ -1,8 +1,14 @@
 name: Project CI
 
+
 on:
   pull_request:
     branches: [ "main" ]
+
+permissions:
+  contents: read
+  pages: write        # ✅ para subir a Pages
+  id-token: write     # ✅ para autenticación OIDC
 
 jobs:
   docs:
@@ -38,9 +44,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
       - uses: actions/deploy-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/_build/html
+
   
   call-devops-ci:
     needs: [docs]
