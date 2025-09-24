@@ -1,6 +1,6 @@
 # MassiveKit 🚀
 
-[![CI](https://github.com/the-reacher-data/dummy-massive-kit/actions/workflows/devops-demo.yaml/badge.svg)](https://github.com/the-reacher-data//dummy-massive-kit/actions/workflows/ci.yml)
+[![CI](https://api.github.com/repos/the-reacher-data/dummy-massive-kit/contents/.github/workflows/release.yml/badge.svg)](https://api.github.com/repos/the-reacher-data/dummy-massive-kit/contents/.github/workflows/release.yml)
 [![Coverage](https://codecov.io/gh/massivedatascope/dummy-massive-kit/branch/main/graph/badge.svg)](https://codecov.io/gh/dummy-massive-kit/massivekit)
 [![PyPI](https://img.shields.io/pypi/v/dummy-massive-kit.svg)](https://pypi.org/project/dummy-massive-kit/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/dummy-massive-kit.svg)](https://pypi.org/project/massivekit/)
