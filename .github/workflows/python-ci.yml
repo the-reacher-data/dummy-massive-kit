@@ -50,6 +50,11 @@ on:
         required: false
         type: string
         default: "__token__"
+      docs-dir:
+        description: "Documentation directory"
+        required: false
+        type: string
+        default: "docs"
     secrets:   # 👈 definición correcta de secretos
       pypi-secret:
         description: "PyPI secret/token"
@@ -178,3 +183,24 @@ jobs:
           pypi-url: ${{ inputs.pypi-url }}
           pypi-user-name: ${{ inputs.pypi-user-name }}
           pypi-secret: ${{ secrets.pypi-secret }}
+  
+  preview-docs:
+    name: 📚 Documentation(Autogenerate)
+    needs: [build_and_publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras --group dev
+      - name: Autogenerate Docs
+        uses: ./actions/python/autogenerate-docs
+        with:
+          src-dir: ${{ inputs.src-dir }}
+          docs-dir: ${{ inputs.docs-dir }}
+          mode: "pr"
