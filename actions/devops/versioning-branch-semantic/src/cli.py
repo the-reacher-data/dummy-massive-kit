@@ -115,7 +115,6 @@ def main() -> None:
     try:
         args = parse_args()
         data = load_config(args.config)
-        print(data)
         cfg: SemanticBranchConfig = data.get("tool", {}).get("semantic_branch", {})
         current_version: str = data.get("project", {}).get("version", "0.1.0")
         prerelease: bool = args.prerelease.lower() == "true"
