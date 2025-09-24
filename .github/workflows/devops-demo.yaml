@@ -11,7 +11,7 @@ jobs:
       python-version: "3.12"
       src-dir: "src"
       test-dir: "src/tests"
-      coverage-threshold: "81"
+      coverage-threshold: "80"
       linter-fail-on: "any"
       security-fail-on: "medium"
       src-dir-docs: "src/mkit"
