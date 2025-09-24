@@ -1,9 +1,9 @@
 # MassiveKit 🚀
 
-[![CI](https://api.github.com/repos/the-reacher-data/dummy-massive-kit/contents/.github/workflows/release.yml/badge.svg)](https://api.github.com/repos/the-reacher-data/dummy-massive-kit/contents/.github/workflows/release.yml)
-[![Coverage](https://codecov.io/gh/massivedatascope/dummy-massive-kit/branch/main/graph/badge.svg)](https://codecov.io/gh/dummy-massive-kit/massivekit)
-[![PyPI](https://img.shields.io/pypi/v/dummy-massive-kit.svg)](https://pypi.org/project/dummy-massive-kit/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/dummy-massive-kit.svg)](https://pypi.org/project/massivekit/)
+[![Release](https://github.com/the-reacher-data/dummy-massive-kit/actions/workflows/release.yaml/badge.svg)](https://github.com/the-reacher-data/dummy-massive-kit/actions/workflows/release.yaml)
+[![Coverage](https://codecov.io/gh/the-reacher-data/dummy-massive-kit/branch/main/graph/badge.svg)](https://codecov.io/gh/the-reacher-data/dummy-massive-kit)
+[![PyPI](https://img.shields.io/pypi/v/dummy-massivekit.svg)](https://pypi.org/project/dummy-massivekit/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/dummy-massivekit.svg)](https://pypi.org/project/dummy-massivekit/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Lint: ruff](https://img.shields.io/badge/lint-ruff-46aef7.svg)](https://github.com/astral-sh/ruff)

@@ -64,11 +64,11 @@ jobs:
           echo "✅ Found branch: $branch"
           echo "branch=$branch" >> $GITHUB_OUTPUT
 
-  versioning:
-    name: 📦 Versioning
+
+  build-version:
+    name: 📝 Generate Version
     runs-on: ubuntu-latest
-    needs: detect-branch
-    if: github.actor != 'github-actions[bot]'
+    needs: [detect-branch]
     outputs:
       version: ${{ steps.version.outputs.version }}
       deploy: ${{ steps.version.outputs.deploy }}
@@ -82,38 +82,24 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --all-extras --group dev
 
-      - id: version
-        name: Versioning Branch Semantic
+      - name: Get Version Branch Semantic
+        id: version
         uses: ./actions/devops/versioning-branch-semantic
         with:
           branch: ${{ needs.detect-branch.outputs.branch }}
           prerelease: "false"
 
-  changelog:
-    name: 📝 Generate Changelog
-    runs-on: ubuntu-latest
-    needs: [versioning, detect-branch]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
-      - uses: astral-sh/setup-uv@v3
-      - run: uv sync --all-extras --group dev
-
-      - name: Generate changelog
+      - name: Generate Changelog
         uses: ./actions/devops/changelog-conventional-commit
         with:
           mode: "release"
           branch: ${{ needs.detect-branch.outputs.branch }}
-          version: ${{ needs.versioning.outputs.version }}
-          output: changelog.md
+          version: ${{ steps.version.outputs.version }}
+          output: version.md
 
       - name: Commit version bump and changelog
         env:
-          VERSION: ${{ needs.versioning.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -136,8 +122,8 @@ jobs:
   publish:
     name: 🚀 Publish Package
     runs-on: ubuntu-latest
-    needs: [versioning, changelog]
-    if: ${{ needs.versioning.outputs.deploy == 'true' }}
+    needs: [build-version]
+    if: ${{ needs.build-version.outputs.deploy == 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -165,15 +151,15 @@ jobs:
   tag:
     name: 🔖 Create Release Tag
     runs-on: ubuntu-latest
-    needs: [versioning, publish]
-    if: ${{ needs.versioning.outputs.deploy == 'true' }}
+    needs: [build-version, publish]
+    if: ${{ needs.build-version.outputs.deploy == 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Create Git Tag
         env:
-          VERSION: ${{ needs.versioning.outputs.version }}
+          VERSION: ${{ needs.build-version.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
