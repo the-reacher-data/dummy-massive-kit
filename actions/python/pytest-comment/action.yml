@@ -59,6 +59,7 @@ runs:
         uv run python ${{ github.action_path }}/src/builder.py \
         --junit junit.xml \
         --cov coverage.json \
+        --xml coverage.xml \
         --threshold ${{ inputs.coverage-threshold }} \
         --output pytest_comment.md \
         --outputs $GITHUB_OUTPUT
@@ -69,7 +70,7 @@ runs:
       with:
         token: ${{ inputs.codecov-token }}
         files: ./coverage.xml
-        fail_ci_if_error: false
+        fail_ci_if_error: true
 
     - name: Post / update PR comment
       if: github.event_name == 'pull_request'
