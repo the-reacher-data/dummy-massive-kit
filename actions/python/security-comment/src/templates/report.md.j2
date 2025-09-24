@@ -1,0 +1,21 @@
+<h2>
+
+<img src="https://raw.githubusercontent.com/pycqa/bandit/main/logo/logotype-sm.png" alt="Bandit Logo" width="80"/>
+Bandit Security Report
+</h2>
+
+**{{ status_msg }}**
+
+---
+
+{% if issues and issues|length > 0 %}
+<details>
+<summary>🛡️ Bandit Findings ({{ count }})</summary>
+
+| File | Line | Severity | Confidence | Test | Message |
+|:-----|-----:|:--------:|:----------:|:-----|:--------|
+{% for issue in issues -%}
+| `{{ issue.filename }}` | {{ issue.line_number }} | {{ issue.severity }} | {{ issue.confidence }} | {{ issue.test_id }} | {{ issue.issue_text }} |
+{% endfor %}
+</details>
+{% endif %}

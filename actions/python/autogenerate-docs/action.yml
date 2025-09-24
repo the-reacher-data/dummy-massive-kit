@@ -1,0 +1,42 @@
+name: "Docs Build & Deploy"
+description: "Generate Sphinx documentation and either upload artifact (PR) or deploy to GitHub Pages (release)."
+
+inputs:
+  src-dir:
+    description: "Path to source code directory (for sphinx-apidoc)"
+    required: false
+    default: "src"
+  docs-dir:
+    description: "Path to documentation directory"
+    required: false
+    default: "docs"
+  mode:
+    description: "Mode: pr or release"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Install doc dependencies
+      uses: ./actions/python/uv-requirements
+      with:
+        requirements: ${{ github.action_path }}/requirements.txt
+
+    - name: Generate API docs & build HTML docs
+      shell: bash
+      run: |
+        uv run sphinx-apidoc -o ${{ inputs.docs-dir }}/api ${{ inputs.src-dir }} --force
+        uv run sphinx-build -b html ${{ inputs.docs-dir }} ${{ inputs.docs-dir }}/_build/html
+
+    - name: Upload docs artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs-html
+        path: ${{ inputs.docs-dir }}/_build/html
+
+    - name: Deploy to GitHub Pages
+      if: ${{ inputs.mode == 'release' }}
+      uses: actions/deploy-pages@v4
+      with:
+        artifact_name: docs-html

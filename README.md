@@ -1,9 +1,9 @@
 # MassiveKit 🚀
 
-[![CI](https://github.com/massivedatascope/massivekit/actions/workflows/ci.yml/badge.svg)](https://github.com/massivedatascope/massivekit/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/massivedatascope/massivekit/branch/main/graph/badge.svg)](https://codecov.io/gh/massivedatascope/massivekit)
-[![PyPI](https://img.shields.io/pypi/v/massivekit.svg)](https://pypi.org/project/massivekit/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/massivekit.svg)](https://pypi.org/project/massivekit/)
+[![CI](https://github.com/the-reacher-data/dummy-massive-kit/actions/workflows/devops-demo.yaml/badge.svg)](https://github.com/the-reacher-data//dummy-massive-kit/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/massivedatascope/dummy-massive-kit/branch/main/graph/badge.svg)](https://codecov.io/gh/dummy-massive-kit/massivekit)
+[![PyPI](https://img.shields.io/pypi/v/dummy-massive-kit.svg)](https://pypi.org/project/dummy-massive-kit/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/dummy-massive-kit.svg)](https://pypi.org/project/massivekit/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Lint: ruff](https://img.shields.io/badge/lint-ruff-46aef7.svg)](https://github.com/astral-sh/ruff)

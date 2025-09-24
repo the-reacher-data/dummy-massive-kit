@@ -1,0 +1,70 @@
+name: "Changelog Conventional Commit"
+description: "Generate changelog from conventional commits (PR preview or squash release)"
+
+inputs:
+  mode:
+    description: "Mode: pr or release"
+    required: true
+  branch:
+    description: "Branch name (required)"
+    required: true
+  version:
+    description: "Version string (optional, fallback to commit title/body)"
+    required: false
+  template:
+    description: "Path to Jinja2 template (optional, uses default if not set)"
+    required: false
+  output:
+    description: "Output Markdown file"
+    required: false
+    default: changelog_preview.md
+  github-token:
+    description: "GitHub token (only needed in PR mode)"
+    required: false
+
+outputs:
+  changelog_b64:
+    value: ${{ steps.gen.outputs.changelog_b64 }}
+    description: "Generated changelog markdown (base64-encoded)"
+  output_path:
+    value: ${{ steps.gen.outputs.output_path }}
+    description: "Path to the generated markdown file"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      uses: ./actions/python/uv-requirements
+      with:
+        requirements: ${{ github.action_path }}/requirements.txt
+
+    - name: Generate changelog
+      id: gen
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        args="--mode ${{ inputs.mode }} --branch ${{ inputs.branch }} --output ${{ inputs.output }}"
+        if [ -n "${{ inputs.version }}" ]; then
+          args="$args --version ${{ inputs.version }}"
+        fi
+        if [ -n "${{ inputs.template }}" ]; then
+          args="$args --template ${{ inputs.template }}"
+        fi
+
+        uv run python "${{ github.action_path }}/src/cli.py" $args
+
+        # Safe output: base64 (avoids multiline delimiter issues)
+        b64=$(base64 -w0 "${{ inputs.output }}")
+        {
+          echo "changelog_b64=$b64"
+          echo "output_path=${{ inputs.output }}"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Update PR comment
+      if: ${{ inputs.mode == 'pr' }}
+      uses: ./actions/devops/pr-comment-update
+      with:
+        github-token: ${{ inputs.github-token }}
+        tags: "<!-- changelog-preview -->,<!-- branch-source:${{ inputs.branch }} -->"
+        body-file: ${{ inputs.output }}

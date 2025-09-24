@@ -1,0 +1,39 @@
+name: "Publish Package"
+description: "Build package and publish to PyPI"
+
+inputs:
+  pypi-url:
+    description: "PyPI URL"
+    required: true
+  pypi-user-name:
+    description: "PyPI user name"
+    required: true
+  pypi-secret:
+    description: "PyPI secret"
+    required: tru
+
+runs:
+  using: composite
+  steps:
+    - uses: ./actions/python/uv-requirements
+      with:
+        requirements: ${{ github.action_path }}/requirements.txt
+
+    - name: Build package
+      shell: bash
+      run: uv run python -m build
+
+    - name: Check built distributions
+      shell: bash
+      run: uv run twine check dist/*
+    
+
+    - name: Publish to PyPI (Twine)
+      shell: bash
+      run: |
+        echo "🚀 Publishing to ${{ inputs.pypi-url }}"
+        uv run twine upload \
+        --repository-url "${{ inputs.pypi-url }}" \
+        -u "${{ inputs.pypi-user-name }}" \
+        -p "${{ inputs.pypi-secret }}" \
+        --skip-existing dist/*

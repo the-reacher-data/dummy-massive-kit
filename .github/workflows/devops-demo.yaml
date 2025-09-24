@@ -1,0 +1,26 @@
+name: Massive CI Devops Python
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  python-devops-ci:
+    uses: ./.github/workflows/python-ci.yml
+    with:
+      python-version: "3.12"
+      src-dir: "src"
+      test-dir: "src/tests"
+      coverage-threshold: "81"
+      linter-fail-on: "any"
+      security-fail-on: "medium"
+      src-dir-docs: "src/mkit"
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: 
+      pypi-secret: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+

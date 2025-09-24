@@ -1,0 +1,53 @@
+<h2>
+<img src="https://raw.githubusercontent.com/pytest-dev/pytest/main/doc/en/img/pytest_logo_curves.svg" alt="pytest" height="80" style="vertical-align:middle; margin-right:8px"/>
+Pytest Report
+</h2>
+
+## 📊 Summary
+
+| Metric          | Value |
+|-----------------|-------|
+| ✅ Passed tests | **{{ passed }}** |
+| ❌ Failed tests | **{{ failed }}** |
+| ⏭ Skipped tests | **{{ skipped }}** |
+| 🧪 Total tests  | **{{ tests }}** |
+| 📈 Coverage     | ![coverage](https://img.shields.io/badge/{{ coverage }}%25-{{ "green" if coverage >= threshold else "red" }}?style=for-the-badge&logo=pytest) |
+
+{% if failed > 0 %}
+❌ Some tests failed. Please review the details below.
+{% elif coverage < threshold %}
+⚠️ Coverage ({{ coverage }}%) is below the threshold ({{ threshold }}%).
+{% else %}
+✅ All tests passed and coverage OK.
+{% endif %}
+
+---
+
+## 🔍 Details
+
+<details>
+<summary>❌ Failed Tests ({{ failed }})</summary>
+
+| Test | Message |
+|------|---------|
+{% for f in failures %}
+| `{{ f.nodeid }}` | {{ f.message }} |
+{% endfor %}
+{% if failures|length == 0 %}
+_No failed tests 🎉_
+{% endif %}
+</details>
+
+
+<details>
+<summary>⚠️ Files Below Coverage Threshold ({{ threshold }}%)</summary>
+
+| File | Coverage |
+|------|----------|
+{% for f in under_files %}
+| `{{ f.path }}` | {{ f.percent }}% |
+{% endfor %}
+{% if under_files|length == 0 %}
+_All files meet coverage requirements ✅_
+{% endif %}
+</details>

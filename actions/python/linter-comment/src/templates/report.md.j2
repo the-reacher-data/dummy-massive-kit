@@ -1,0 +1,47 @@
+# 🧹 Lint & Type Check Report
+
+**{{ status_msg }}**
+
+---
+
+## <img src="https://github.com/astral-sh/ruff/blob/main/docs/assets/ruff-favicon.png?raw=true" alt="ruff" height="40" /> Ruff Report
+
+| Metric | Value |
+|:-------|------:|
+| Issues | {{ ruff_count }} |
+
+{% if ruff_count == 0 %}
+✅ No Ruff issues found
+{% else %}
+<details>
+<summary>🔎 Ruff Findings ({{ ruff_count }})</summary>
+
+| File | Line | Rule | Message |
+|:-----|-----:|:-----|:--------|
+{% for issue in ruff -%}
+| `{{ issue.filename }}` | {{ issue.location.row }} | {{ issue.code }} | {{ issue.message }} |
+{% endfor %}
+</details>
+{% endif %}
+
+---
+
+## <img src="https://github.com/python/mypy/blob/master/docs/source/mypy_light.svg?raw=true" alt="mypy" height="40" /> MyPy Report
+
+| Metric | Value |
+|:-------|------:|
+| Issues | {{ mypy_count }} |
+
+{% if mypy_count == 0 %}
+✅ No MyPy issues found
+{% else %}
+<details>
+<summary>🔎 MyPy Findings ({{ mypy_count }})</summary>
+
+```text
+{% for line in mypy -%}
+{{ line }}
+{% endfor %}
+```
+</details> 
+{% endif %} 

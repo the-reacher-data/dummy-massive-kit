@@ -1,0 +1,91 @@
+name: "Pytest Comment"
+description: "Run pytest with coverage and post an enterprise PR comment (logo, badges, tables)."
+
+inputs:
+  test-dir:
+    description: "Directory with tests"
+    required: false
+    default: "src/tests"
+  src-dir:
+    description: "Source folder measured by coverage"
+    required: false
+    default: "src"
+  coverage-threshold:
+    description: "Minimum coverage percentage to consider healthy"
+    required: false
+    default: "85"
+  github-token:
+    description: "GitHub token for posting PR comments"
+    required: true
+  codecov-token:
+    description: "Codecov token (optional) to upload coverage.xml"
+    required: false
+
+outputs:
+  coverage:
+    description: "Global coverage percentage"
+    value: ${{ steps.build.outputs.coverage }}
+  failed:
+    description: "Number of failed tests"
+    value: ${{ steps.build.outputs.failed }}
+
+runs:
+  using: "composite"
+  steps:
+
+    - uses: ./actions/python/uv-requirements
+      with:
+        requirements: ${{ github.action_path }}/requirements.txt
+
+    - name: Run pytest with coverage
+      id: pytest
+      shell: bash
+      continue-on-error: true
+      run: |
+        set -euo pipefail
+        uv run pytest "${{ inputs.test-dir }}" \
+          --cov="${{ inputs.src-dir }}" \
+          --cov-report=term-missing \
+          --cov-report=json:coverage.json \
+          --cov-report=xml:coverage.xml \
+          --junit-xml=junit.xml \
+          -o junit_family=legacy \
+          -v --tb=short || true
+
+    - name: Build pytest comment (Markdown) Bash
+      id: build
+      shell: bash
+      run: |
+        uv run python ${{ github.action_path }}/src/builder.py \
+        --junit junit.xml \
+        --cov coverage.json \
+        --threshold ${{ inputs.coverage-threshold }} \
+        --output pytest_comment.md \
+        --outputs $GITHUB_OUTPUT
+
+    - name: Optional upload to Codecov
+      if: inputs.codecov-token != ''
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ./coverage.xml
+        fail_ci_if_error: true
+
+    - name: Post / update PR comment
+      if: github.event_name == 'pull_request'
+      uses: ./actions/devops/pr-comment-update
+      with:
+        github-token: ${{ inputs.github-token }}
+        tags: "<!-- massive-devops-pytest -->"
+        body-file: pytest_comment.md
+
+
+    - name: Fail if below threshold or tests failed
+      if: always()
+      shell: bash
+      run: |
+        uv run python ${{ github.action_path }}/src/builder.py \
+        --check-exit \
+        --junit junit.xml \
+        --cov coverage.json \
+        --threshold ${{ inputs.coverage-threshold }}

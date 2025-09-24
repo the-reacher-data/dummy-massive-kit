@@ -1,0 +1,75 @@
+name: "Lint & Type Comment"
+description: "Run Ruff + MyPy and post a PR comment"
+
+inputs:
+  src-dir:
+    default: "src"
+    required: false
+    description: "Source folder to scan"
+  github-token:
+    required: true
+    description: "GitHub token for posting PR comments"
+  fail-on:
+    required: false
+    default: "any" # or "none"
+    description: "Fail condition for Ruff/MyPy (none, any)"
+  exclude:
+    required: false
+    default: "tests,migrations"
+    description: "Exclude directories from linting"
+
+outputs:
+  ruff_issues:
+    value: ${{ steps.build.outputs.ruff_issues }}
+    description: "Number of Ruff issues found"
+  mypy_issues:
+    value: ${{ steps.build.outputs.mypy_issues }}
+    description: "Number of MyPy issues found"
+runs:
+  using: "composite"
+  steps:
+
+    - uses: ./actions/python/uv-requirements
+      with:
+        requirements: ${{ github.action_path }}/requirements.txt
+
+    - name: Run Ruff
+      shell: bash
+      run: |
+        uv run ruff check "${{ inputs.src-dir }}" --exclude "${{ inputs.exclude }}" --output-format json > ruff.json || true
+
+    - name: Run MyPy
+      shell: bash
+      run: |
+        EXCLUDE_REGEX=$(echo "${{ inputs.exclude }}" | sed 's/,/|/g')
+        uv run mypy "${{ inputs.src-dir }}" --exclude "$EXCLUDE_REGEX" --junit-xml mypy.xml || true
+
+    - name: Build lint report
+      id: build
+      shell: bash
+      run: |
+        uv run python ${{ github.action_path }}/src/builder.py \
+          --ruff ruff.json \
+          --mypy mypy.xml  \
+          --template ${{ github.action_path }}/src/templates/report.md.j2 \
+          --output lint_report.md \
+          --outputs $GITHUB_OUTPUT \
+          --fail-on "${{ inputs.fail-on }}"
+
+    - name: Post / update PR comment
+      if: github.event_name == 'pull_request'
+      uses: ./actions/devops/pr-comment-update
+      with:
+        github-token: ${{ inputs.github-token }}
+        tags: "<!-- massive-devops-lint -->"
+        body-file: lint_report.md
+
+    - name: Fail if blocking
+      if: always()
+      shell: bash
+      run: |
+        uv run python ${{ github.action_path }}/src/builder.py \
+          --ruff ruff.json \
+          --mypy mypy.xml  \
+          --fail-on "${{ inputs.fail-on }}" \
+          --check-exit

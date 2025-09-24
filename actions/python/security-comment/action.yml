@@ -1,0 +1,71 @@
+name: massive-security
+description: |
+  Run Bandit security analysis, generate Markdown report
+  and publish/update PR comment.
+
+inputs:
+  src-dir:
+    description: "Source folder to scan"
+    required: false
+    default: "src"
+
+  github-token:
+    description: "GITHUB_TOKEN for posting PR comments"
+    required: true
+
+  fail-on:
+    description: "Severity threshold for failing the action (none|low|medium|high)"
+    required: false
+    default: "none"
+
+outputs:
+  issues:
+    description: "Number of Bandit issues found"
+    value: ${{ steps.report.outputs.issues }}
+
+runs:
+  using: composite
+  steps:
+    - uses: ./actions/python/uv-requirements
+      with:
+        requirements: ${{ github.action_path }}/requirements.txt
+
+    - name: 🔒 Run Bandit
+      id: bandit
+      shell: bash
+      run: |
+        uv run bandit -c pyproject.toml -r ${{ inputs.src-dir }} -f json -o bandit.json || true
+        COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
+        echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
+
+    - name: 📝 Render Markdown report
+      id: report
+      shell: bash
+      run: |
+        uv run python "${{ github.action_path }}/src/builder.py" \
+          --input bandit.json \
+          --template "${{ github.action_path }}/src/templates/report.md.j2" \
+          --output security_comment.md \
+          --outputs $GITHUB_OUTPUT \
+          --fail-on "${{ inputs.fail-on }}"
+        COUNT=$(jq '.results | length' bandit.json 2>/dev/null || echo 0)
+        echo "issues=$COUNT" >> "$GITHUB_OUTPUT"
+        echo "path=security_comment.md" >> "$GITHUB_OUTPUT"
+
+    - name: Post / update PR comment
+      if: github.event_name == 'pull_request'
+      uses: ./actions/devops/pr-comment-update
+      with:
+        github-token: ${{ inputs.github-token }}
+        tags: "<!-- massive-devops-security -->"
+        body-file: security_comment.md
+
+
+    - name: Fail if blocking issues
+      if: always()
+      shell: bash
+      run: |
+        uv run python "${{ github.action_path }}/src/builder.py" \
+        --input bandit.json \
+        --fail-on "${{ inputs.fail-on }}" \
+        --check-exit

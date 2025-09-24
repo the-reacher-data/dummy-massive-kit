@@ -1,0 +1,196 @@
+name: 🚀 Release Workflow
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version to use"
+        required: false
+        default: "3.11"
+        type: string
+      pypi-url:
+        description: "PyPI repository URL"
+        required: false
+        default: "https://upload.pypi.org/legacy/"
+        type: string
+      pypi-user-name:
+        description: "PyPI username (usually __token__)"
+        required: false
+        default: "__token__"
+        type: string
+      docs-dir:
+        description: "Docs directory to upload"
+        required: false
+        default: "docs"
+        type: string
+    secrets:
+      pypi-secret:
+        description: "PyPI secret/token"
+        required: true
+      github-token:
+        description: "GitHub token"
+        required: true
+
+jobs:
+  detect-branch:
+    name: 🔎 Detect Branch from PR Comment
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.extract.outputs.branch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: extract
+        name: Find branch from PR comment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.github-token }}
+        run: |
+          echo "Fetching PR comments..."
+          comments=$(gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --jq '.[].body')
+          branch=$(echo "$comments" | grep -o '<!-- branch-source:[^>]* -->' | sed -E 's/<!-- branch-source:(.*) -->/\1/' | tail -n 1)
+
+          if [ -z "$branch" ]; then
+            echo "❌ No branch-source tag found"
+            exit 1
+          fi
+          echo "✅ Found branch: $branch"
+          echo "branch=$branch" >> $GITHUB_OUTPUT
+
+  versioning:
+    name: 📦 Versioning
+    runs-on: ubuntu-latest
+    needs: detect-branch
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      deploy: ${{ steps.version.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras --group dev
+
+      - id: version
+        name: Versioning Branch Semantic
+        uses: ./actions/devops/versioning-branch-semantic
+        with:
+          branch: ${{ needs.detect-branch.outputs.branch }}
+          prerelease: "false"
+
+  changelog:
+    name: 📝 Generate Changelog
+    runs-on: ubuntu-latest
+    needs: versioning
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras --group dev
+
+      - name: Generate changelog
+        uses: ./actions/devops/changelog-conventional-commit
+        with:
+          mode: "release"
+          branch: ${{ needs.detect-branch.outputs.branch }}
+          version: ${{ needs.versioning.outputs.version }}
+          output: changelog.md
+
+      - name: Commit version bump and changelog
+        env:
+          VERSION: ${{ needs.versioning.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add pyproject.toml CHANGELOG.md || true
+
+          if git diff --cached --quiet; then
+            echo "⚠️ Nothing to commit"
+            exit 0
+          fi
+
+          if git diff --cached --name-only | grep -q "pyproject.toml"; then
+            git commit -m "chore(release): ${VERSION}"
+          else
+            git commit -m "docs(changelog): update changelog"
+          fi
+
+          git push
+
+  publish:
+    name: 🚀 Publish Package
+    runs-on: ubuntu-latest
+    needs: [versioning, changelog]
+    if: ${{ needs.versioning.outputs.deploy == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras --group dev
+
+      - name: Publish Package
+        uses: ./actions/python/publish-package
+        with:
+          pypi-url: ${{ inputs.pypi-url }}
+          pypi-user-name: ${{ inputs.pypi-user-name }}
+          pypi-secret: ${{ secrets.pypi-secret }}
+
+      - name: Upload Docs
+        uses: ./actions/python/upload-docs
+        if: github.event.repository.private == false
+        with:
+          docs-dir: ${{ inputs.docs-dir }}
+          mode: "release"
+
+  tag:
+    name: 🔖 Create Release Tag
+    runs-on: ubuntu-latest
+    needs: versioning
+    if: ${{ needs.versioning.outputs.deploy == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create Git Tag
+        env:
+          VERSION: ${{ needs.versioning.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+
+  codeql:
+    name: 🛡️ CodeQL Analysis
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3

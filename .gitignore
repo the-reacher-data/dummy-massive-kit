@@ -4,9 +4,19 @@ __pycache__/
 *$py.class
 .vscode/
 .venv/
+.cursorignore
+.cursorrules
+bandit.json
+snyk.json
+coverage.xml
+pytest.xml
+pytest.log
+lint.log
+types.log
 
 # C extensions
 *.so
+
 
 # Distribution / packaging
 .Python
@@ -52,6 +62,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+pytest.xml
 
 # Translations
 *.mo
