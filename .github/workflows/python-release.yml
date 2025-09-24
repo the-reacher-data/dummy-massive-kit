@@ -54,7 +54,7 @@ jobs:
           GH_TOKEN: ${{ secrets.github-token }}
         run: |
           echo "Fetching PR comments..."
-          comments=$(gh api repos/${{ github.repository }}/issues/${{ inputs.pr-number }}/comments --jq '.[].body')
+          comments=$(gh api repos/${{ github.repository }}/issues/$pr_number/comments --jq '.[].body')
           branch=$(echo "$comments" | grep -o '<!-- branch-source:[^>]* -->' | sed -E 's/<!-- branch-source:(.*) -->/\1/' | tail -n 1)
 
           if [ -z "$branch" ]; then
