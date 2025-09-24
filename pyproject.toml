@@ -103,7 +103,6 @@ changelog_file = "CHANGELOG.md"
 
 # --- Semantic Branch ---
 [tool.semantic-branch]
-release = ["main"]     # branches that trigger final releases
 prerelease = ["hotfix/.*", "feature/.*"]  # branches that trigger prereleases (.devN)
 patch = ["hotfix/.*"]            # bump patch version
 minor = ["feature/.*", "feat/.*", "multifeature/.*"]           # bump minor version
