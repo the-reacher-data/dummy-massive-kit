@@ -102,10 +102,10 @@ update_changelog_on_bump = true
 changelog_file = "CHANGELOG.md"
 
 # --- Semantic Branch ---
-[tool.semantic-branch]
+[tool.semantic_branch]
 prerelease = ["hotfix/.*", "feature/.*"]  # branches that trigger prereleases (.devN)
 patch = ["hotfix/.*"]            # bump patch version
 minor = ["feature/.*", "feat/.*", "multifeature/.*"]           # bump minor version
 major = ["breaking/.*", "feat!/.*"]          # bump major version
-prerelease-ignore = ["docs/.*"]  # branches ignored for prerelease
-release-ignore = ["wip/.*", "docs/.*", "chore/.*"]      # branches ignored for release
+prerelease_ignore = ["docs/.*"]  # branches ignored for prerelease
+release_ignore = ["wip/.*", "docs/.*", "chore/.*"]      # branches ignored for release
