@@ -59,7 +59,6 @@ runs:
         uv run python ${{ github.action_path }}/src/builder.py \
         --junit junit.xml \
         --cov coverage.json \
-        --xml coverage.xml \
         --threshold ${{ inputs.coverage-threshold }} \
         --output pytest_comment.md \
         --outputs $GITHUB_OUTPUT
