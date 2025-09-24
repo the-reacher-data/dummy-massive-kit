@@ -7,6 +7,8 @@ import tomllib
 import tomli_w
 import re
 
+VERSION_UNRELEASED = "UNRELEASED"
+
 def load_config(path: str) -> dict:
     f = Path(path)
     if not f.exists():
@@ -20,32 +22,23 @@ def matches(branch: str, patterns: list[str]) -> bool:
         patterns = [patterns]
     return any(re.fullmatch(p, branch) for p in patterns)
 
-def bump(base: str, part: str) -> str:
-    major, minor, patch = map(int, base.split("."))
-    if part == "major":
-        major += 1; minor = 0; patch = 0
-    elif part == "minor":
+def bump(branch: str, cfg: dict, current: str) -> str:
+    major, minor, patch = map(int, current.split("."))
+    if matches(branch, cfg.get("minor", [])):
         minor += 1; patch = 0
-    elif part == "patch":
+    elif matches(branch, cfg.get("major", [])):
+        major += 1; minor = 0; patch = 0
+    elif matches(branch, cfg.get("patch", [])):
         patch += 1
     return f"{major}.{minor}.{patch}"
 
 def calc_next_version(cfg: dict, branch: str, prerelease: bool, current: str) -> tuple[str,bool]:
     # ignore rules
-    if prerelease and matches(branch, cfg.get("prerelease-ignore", [])):
-        return current, False
-    if not prerelease and matches(branch, cfg.get("release-ignore", [])):
-        return current, False
+    if (prerelease and matches(branch, cfg.get("prerelease-ignore", [])))or (not prerelease and matches(branch, cfg.get("release-ignore", []))):
+        return VERSION_UNRELEASED, False
 
-    bump_type = "patch"
-    if matches(branch, cfg.get("minor", [])):
-        bump_type = "minor"
-    elif matches(branch, cfg.get("major", [])):
-        bump_type = "major"
-    elif matches(branch, cfg.get("patch", [])):
-        bump_type = "patch"
-
-    nextv = bump(current, bump_type)
+    # bump version
+    nextv = bump(branch, cfg, current)
 
     if prerelease and matches(branch, cfg.get("prerelease", [])):
         count = subprocess.check_output(
@@ -77,8 +70,8 @@ def cli():
 
     version, deploy = calc_next_version(cfg, args.branch, prerelease, current)
 
-    # update only for release mode
-    if  deploy and Path(args.config).name == "pyproject.toml":
+    # update only for deploy
+    if  deploy and Path(args.config).name.endswith(".toml"):
         update_pyproject(data, Path(args.config), version)
 
     print(f"version={version}")

@@ -112,7 +112,7 @@ def group_commits(commits: List[dict]) -> Dict[str, Dict[str, List[dict]]]:
     return grouped
 
 
-def render(template_path: str, version: str, commits, repo_url: str, squash: dict | None) -> str:
+def render(template_path: str, version: str, commits, repo_url: str, squash: dict | None, is_unreleased: bool) -> str:
     env = Environment(
         loader=FileSystemLoader(Path(template_path).parent),
         autoescape=False,
@@ -120,7 +120,7 @@ def render(template_path: str, version: str, commits, repo_url: str, squash: dic
         lstrip_blocks=True,
     )
     tmpl = env.get_template(Path(template_path).name)
-    return tmpl.render(version=version, commits=commits, repo_url=repo_url, squash=squash)
+    return tmpl.render(version=version, commits=commits, repo_url=repo_url, squash=squash, is_unreleased=is_unreleased)
 
 
 def main():
@@ -133,16 +133,17 @@ def main():
     p.add_argument("--repo-url", default=_default_repo_url())
     args = p.parse_args()
 
+    is_unreleased = str(args.version).upper() == "UNRELEASED" 
     if args.mode == "pr":
         commits = get_commits_pr(args.branch)
         grouped = group_commits(commits)
-        title = args.version or f"Changelog preview for {args.branch}"
-        md = render(args.template, title, grouped, args.repo_url, squash=None)
+        title = args.version if not is_unreleased else f"Changelog preview for {args.branch}"
+        md = render(args.template, title, grouped, args.repo_url, squash=None, is_unreleased=is_unreleased)
     else:
         squash = get_commit_squash()
         grouped = group_commits(squash["commits"])
-        title = args.version or squash["subject"]
-        md = render(args.template, title, grouped, args.repo_url, squash=squash)
+        title = args.version if not is_unreleased else squash["subject"]
+        md = render(args.template, title, grouped, args.repo_url, squash=squash, is_unreleased=is_unreleased)
 
         # Update CHANGELOG.md in release mode
         changelog = Path("CHANGELOG.md")

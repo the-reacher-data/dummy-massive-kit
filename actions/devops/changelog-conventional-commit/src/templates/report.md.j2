@@ -1,6 +1,10 @@
-{% if squash %}
+{% if is_unreleased and squash %}
+# ✨ Unreleased (commit [`{{ squash.sha }}`]({{ repo_url }}/commit/{{ squash.sha_full }}))
+{% elif is_unreleased and not squash %}
+# ✨ Unreleased
+{% elif not is_unreleased and squash %}
 # 🚀 Release {{ version }} (commit [`{{ squash.sha }}`]({{ repo_url }}/commit/{{ squash.sha_full }}))
-{% else %}
+{% else %}  {# release normal #}
 # 🚀 {{ version }}
 {% endif %}
 
