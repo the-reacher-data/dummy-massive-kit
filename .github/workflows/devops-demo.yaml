@@ -15,4 +15,5 @@ jobs:
       linter-fail-on: "any"
       security-fail-on: "medium"
       pypi-secret: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      github-token: ${{ secrets.GITHUB_TOKEN }}
 

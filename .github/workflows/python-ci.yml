@@ -55,6 +55,11 @@ on:
         description: "PyPI secret/token"
         required: true
         type: string
+      
+      github-token:
+        description: "GitHub token"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -81,7 +86,7 @@ jobs:
         uses: ./actions/python/linter-comment
         with:
           src-dir: ${{ inputs.src-dir }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ inputs.github-token }}
           fail-on: ${{ inputs.linter-fail-on }}
 
   security:
@@ -98,14 +103,14 @@ jobs:
           python-version: ${{ inputs.python-version }}
 
       - uses: astral-sh/setup-uv@v3
-      - run: uv sync --extra dev
+      - run: uv sync --all-extras --group dev
 
       - name: Bandit Comment
         uses: ./actions/python/security-comment
         with:
           src-dir: ${{ inputs.src-dir }}
           fail-on: ${{ inputs.security-fail-on }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ inputs.github-token }}
 
   test:
     name: 🧪 Tests & Coverage
@@ -126,7 +131,7 @@ jobs:
       - name: Pytest Comment
         uses: ./actions/python/pytest-comment
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ inputs.github-token }}
           test-dir: ${{ inputs.test-dir }}
           src-dir: ${{ inputs.src-dir }}
           coverage-threshold: ${{ inputs.coverage-threshold }}
@@ -161,7 +166,7 @@ jobs:
           mode: "pr"
           branch: ${{ github.head_ref }}
           version: ${{ steps.version.outputs.version }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ inputs.github-token }}
           output: changelog_preview.md
 
       - name: Publish Package
