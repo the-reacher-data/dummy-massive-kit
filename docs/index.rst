@@ -8,4 +8,4 @@ Welcome to Dummy Massive Kit’s documentation!
    :maxdepth: 2
    :caption: API Reference:
 
-   api/index
+   api/modules
