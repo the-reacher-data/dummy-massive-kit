@@ -1,3 +1,5 @@
+"""Dummy API module."""
+
 class Dummy:
     """A dummy class for demonstration purposes.
 
