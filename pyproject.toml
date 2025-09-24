@@ -10,7 +10,6 @@ keywords = ["fastapi", "clean-architecture", "solid", "omegaconf"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel", "build"]
-build-backend = "setuptools.build_meta"
 
 dependencies = [
   "pydantic>=2.8",
