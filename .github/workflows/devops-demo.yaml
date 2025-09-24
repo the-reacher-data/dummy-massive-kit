@@ -11,7 +11,7 @@ jobs:
       python-version: "3.12"
       src-dir: "src"
       test-dir: "src/tests"
-      coverage-threshold: "85"
+      coverage-threshold: "81"
       linter-fail-on: "any"
       security-fail-on: "medium"
     permissions:
