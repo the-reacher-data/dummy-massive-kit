@@ -14,21 +14,34 @@ jobs:
       pull-requests: read
 
     steps:
-      - name: Find PR number for this commit
-        id: extract
+      - name: Find merged PR number
+        id: find-pr
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🔎 Searching PR for commit $GITHUB_SHA"
+          echo "🔎 Searching PR for squash commit $GITHUB_SHA"
           pr_number=$(gh pr list \
-            --repo ${{ github.repository }} \
-            --state merged \
-            --head ${{ github.ref_name }} \
-            --json number \
-            --jq '.[0].number')
+          --repo ${{ github.repository }} \
+          --base main \
+          --state closed \
+          --json number,mergeCommit \
+          --jq '.[] | select(.mergeCommit.oid=="'${GITHUB_SHA}'") | .number')
 
           if [ -z "$pr_number" ]; then
-            echo "❌ No PR found for commit $GITHUB_SHA"
+            echo "⚠️ No PR found with mergeCommit=$GITHUB_SHA"
+            echo "🔄 Falling back to latest closed PR targeting main..."
+            pr_number=$(gh pr list \
+            --repo ${{ github.repository }} \
+            --base main \
+            --state closed \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number')
+          fi
+
+          if [ -z "$pr_number" ]; then
+            echo "❌ Still no PR found. Exiting."
             exit 1
           fi
 
