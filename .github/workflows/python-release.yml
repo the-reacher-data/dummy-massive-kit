@@ -111,7 +111,7 @@ jobs:
             exit 0
           fi
 
-          if git diff --cached --name-only | grep -q "pyproject.toml"; then
+          if $VERSION != "UNRELEASED"; then
             git commit -m "chore(release): ${VERSION}"
           else
             git commit -m "docs(changelog): update changelog"

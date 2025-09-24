@@ -7,6 +7,8 @@ import tomllib
 import tomli_w
 import re
 
+VERSION_UNRELEASED = "UNRELEASED"
+
 def load_config(path: str) -> dict:
     f = Path(path)
     if not f.exists():
@@ -32,11 +34,10 @@ def bump(base: str, part: str) -> str:
 
 def calc_next_version(cfg: dict, branch: str, prerelease: bool, current: str) -> tuple[str,bool]:
     # ignore rules
-    if prerelease and matches(branch, cfg.get("prerelease-ignore", [])):
-        return current, False
-    if not prerelease and matches(branch, cfg.get("release-ignore", [])):
-        return current, False
+    if (prerelease and matches(branch, cfg.get("prerelease-ignore", [])))or (not prerelease and matches(branch, cfg.get("release-ignore", []))):
+        return VERSION_UNRELEASED, False
 
+    # bump version
     bump_type = "patch"
     if matches(branch, cfg.get("minor", [])):
         bump_type = "minor"
@@ -77,8 +78,8 @@ def cli():
 
     version, deploy = calc_next_version(cfg, args.branch, prerelease, current)
 
-    # update only for release mode
-    if  deploy and Path(args.config).name == "pyproject.toml":
+    # update only for deploy
+    if  deploy and Path(args.config).name.endswith(".toml"):
         update_pyproject(data, Path(args.config), version)
 
     print(f"version={version}")
