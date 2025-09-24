@@ -8,56 +8,13 @@ on:
       - "pyproject.toml"
 
 jobs:
-  find-pr:
-    runs-on: ubuntu-latest
-    outputs:
-      pr-number: ${{ steps.extract.outputs.pr-number }}
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - name: Find merged PR number
-        id: extract
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "🔎 Searching PR for squash commit $GITHUB_SHA"
-          pr_number=$(gh pr list \
-          --repo ${{ github.repository }} \
-          --base main \
-          --state closed \
-          --json number,mergeCommit \
-          --jq '.[] | select(.mergeCommit.oid=="'${GITHUB_SHA}'") | .number')
-
-          if [ -z "$pr_number" ]; then
-            echo "⚠️ No PR found with mergeCommit=$GITHUB_SHA"
-            echo "🔄 Falling back to latest closed PR targeting main..."
-            pr_number=$(gh pr list \
-            --repo ${{ github.repository }} \
-            --base main \
-            --state closed \
-            --limit 1 \
-            --json number \
-            --jq '.[0].number')
-          fi
-
-          if [ -z "$pr_number" ]; then
-            echo "❌ Still no PR found. Exiting."
-            exit 1
-          fi
-
-          echo "✅ Found PR: $pr_number"
-          echo "pr-number=$pr_number" >> $GITHUB_OUTPUT
-
   python-devops-releases:
-    needs: find-pr
     uses: ./.github/workflows/python-release.yml
     with:
       python-version: "3.12"
       pypi-url: "https://upload.pypi.org/legacy/"
-      pr_number: ${{ needs.find-pr.outputs.pr-number }}
       src-dir-docs: "src/mkit"
+      github-sha: ${{ github.sha }}
     permissions:
       contents: write
       pull-requests: read
