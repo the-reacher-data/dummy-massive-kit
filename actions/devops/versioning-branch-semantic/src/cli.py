@@ -15,13 +15,13 @@ VERSION_UNRELEASED = "UNRELEASED"
 
 
 class SemanticBranchConfig(TypedDict, total=False):
-    """Structure of the [tool.semantic-branch] section in pyproject.toml."""
+    """Structure of the [tool.semantic_branch] section in pyproject.toml."""
     major: list[str]
     minor: list[str]
     patch: list[str]
     prerelease: list[str]
-    prerelease-ignore: list[str]
-    release-ignore: list[str]
+    prerelease_ignore: list[str]
+    release_ignore: list[str]
 
 
 class ConfigError(Exception):
@@ -71,8 +71,8 @@ def calc_next_version(
         - the calculated version string
         - a boolean indicating whether deployment should proceed
     """
-    if (prerelease and matches(branch, cfg.get("prerelease-ignore"))) or (
-        not prerelease and matches(branch, cfg.get("release-ignore"))
+    if (prerelease and matches(branch, cfg.get("prerelease_ignore"))) or (
+        not prerelease and matches(branch, cfg.get("release_ignore"))
     ):
         return VERSION_UNRELEASED, False
 
@@ -115,8 +115,8 @@ def main() -> None:
     try:
         args = parse_args()
         data = load_config(args.config)
-
-        cfg: SemanticBranchConfig = data.get("tool", {}).get("semantic-branch", {})
+        print(data)
+        cfg: SemanticBranchConfig = data.get("tool", {}).get("semantic_branch", {})
         current_version: str = data.get("project", {}).get("version", "0.1.0")
         prerelease: bool = args.prerelease.lower() == "true"
 
