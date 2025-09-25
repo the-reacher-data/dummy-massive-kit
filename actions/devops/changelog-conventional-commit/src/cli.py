@@ -173,13 +173,27 @@ def main() -> None:
     if args.mode == "pr":
         commits = get_commits_pr(args.branch)
         grouped = group_commits(commits)
-        title = args.version if not is_unreleased else f"Changelog preview for {args.branch}"
-        md = render(args.template, title, grouped, args.repo_url, squash=None, is_unreleased=is_unreleased)
+        version = args.version if not is_unreleased else f"Changelog preview for {args.branch} ({args.version})"
+        md = render(
+          args.template, 
+          version, grouped, 
+          args.repo_url, 
+          squash=None, 
+          is_unreleased=is_unreleased
+        )
     else:  # release mode
         squash = get_commit_squash()
         grouped = group_commits(squash["commits"])
-        title = f"{args.version} (#{args.pr_number})"
-        md = render(args.template, title, grouped, args.repo_url, squash=squash, is_unreleased=is_unreleased)
+        version = args.version
+        md = render(
+          args.template, 
+          version, 
+          grouped, 
+          args.repo_url, 
+          squash=squash, 
+          is_unreleased=is_unreleased
+          
+        )
 
         changelog = Path("CHANGELOG.md")
         previous = changelog.read_text(encoding="utf-8") if changelog.exists() else ""

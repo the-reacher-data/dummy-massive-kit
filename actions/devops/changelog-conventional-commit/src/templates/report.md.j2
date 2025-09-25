@@ -1,11 +1,11 @@
 {% if is_unreleased and squash %}
-# ✨ {{version}} ([`{{ squash.sha }}`]({{ repo_url }}/commit/{{ squash.sha_full }}))
+# ✨ {{version}} ([#{{ pr_number }}]({{ repo_url }}/pull/{{ pr_number }})) ([`{{ squash.sha }}`]({{ repo_url }}/commit/{{ squash.sha_full }}))
+{% elif not is_unreleased and squash %}
+# 🚀 Release {{ version }} ([#{{ pr_number }}]({{ repo_url }}/pull/{{ pr_number }})) ([`{{ squash.sha }}`]({{ repo_url }}/commit/{{ squash.sha_full }}))
 {% elif is_unreleased and not squash %}
 # ✨ {{version}}
-{% elif not is_unreleased and squash %}
-# 🚀 Release {{ version }} ([`{{ squash.sha }}`]({{ repo_url }}/commit/{{ squash.sha_full }}))
-{% else %}  {# release normal #}
-# 🚀 {{ version }}
+{% else %}  
+# 🚀 {{ version }} 
 {% endif %}
 
 {% macro render_items(items, squash) -%}
