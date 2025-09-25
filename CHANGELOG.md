@@ -1,3 +1,16 @@
+# 🚀 Release 0.9.3 ([#29](https://github.com/the-reacher-data/dummy-massive-kit/pull/29)) ([`d11d7df`](https://github.com/the-reacher-data/dummy-massive-kit/commit/d11d7df780b20a492934a89474dc1d3fc7e9aadd))
+
+
+
+
+
+
+
+
+
+
+
+
 # 🚀 Release 0.9.2 ([#28](https://github.com/the-reacher-data/dummy-massive-kit/pull/28)) ([`0262e7c`](https://github.com/the-reacher-data/dummy-massive-kit/commit/0262e7c0a7feff98bf65426366796130d37067ed))
 
 
