@@ -199,24 +199,21 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git fetch origin main
-          git checkout main
-          git reset --hard origin/main
-
           git add pyproject.toml CHANGELOG.md || true
 
-          if git diff --cached --quiet; then
-            echo "⚠️ Nothing new to commit (likely rerun)"
-            exit 0
+          if git diff --cached --name-only | grep -q "pyproject.toml"; then
+            commit_msg="chore(release): ${VERSION} (#${{ needs.detect-branch.outputs.pr-number }})"
+          else
+            commit_msg="docs(changelog): update changelog (#${{ needs.detect-branch.outputs.pr-number }})"
           fi
 
-          if [[ "$VERSION" != "UNRELEASED" ]]; then
-            git commit -m "chore(release): ${VERSION} (#${{ github.event.pull_request.number }})"
-          else
-            git commit -m "docs(changelog): update changelog (#${{ github.event.pull_request.number }})"
+          if git log origin/main --grep="$(echo "$commit_msg" | sed 's/[].[^$*/]/\\&/g')" -q; then
+            echo "⚠️ Commit is main, maybe a rerun. exiting..."
+            exit 0
           fi
-      
-          git push origin HEAD:main
+          git commit -m "$commit_msg"
+          git push
+          echo "✅ Committed with changes"
 
   publish_docs:
     name: 📚 Publish Docs
