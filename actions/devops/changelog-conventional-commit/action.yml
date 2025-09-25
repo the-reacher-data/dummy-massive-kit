@@ -14,6 +14,9 @@ inputs:
   template:
     description: "Path to Jinja2 template (optional, uses default if not set)"
     required: false
+  pr-number:
+    description: "PR number of the squash commit"
+    required: false
   output:
     description: "Output Markdown file"
     required: false
@@ -51,7 +54,9 @@ runs:
         if [ -n "${{ inputs.template }}" ]; then
           args="$args --template ${{ inputs.template }}"
         fi
-
+        if [ -n "${{ inputs.pr-number }}" ]; then
+          args="$args --pr-number ${{ inputs.pr-number }}"
+        fi
         uv run python "${{ github.action_path }}/src/cli.py" $args
 
         # Safe output: base64 (avoids multiline delimiter issues)

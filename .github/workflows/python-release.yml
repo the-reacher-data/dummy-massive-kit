@@ -159,9 +159,9 @@ jobs:
           fi
 
           if [[ "$VERSION" != "UNRELEASED" ]]; then
-            git commit -m "chore(release): ${VERSION}"
+            git commit -m "chore(release): ${VERSION} (#${{ needs.detect-branch.outputs.pr-number }})"
           else
-            git commit -m "docs(changelog): update changelog"
+            git commit -m "docs(changelog): update changelog (#${{ needs.detect-branch.outputs.pr-number }})"
           fi
           git push
           echo "✅ Committed with changes"
