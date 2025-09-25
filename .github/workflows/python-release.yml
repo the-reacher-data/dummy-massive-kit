@@ -205,9 +205,9 @@ jobs:
               exit 0
           fi
           if [[ "$VERSION" != "UNRELEASED" ]]; then
-            git commit -m "chore(release): ${VERSION} (#PR_NUMBER})"
+            git commit -m "chore(release): ${VERSION} (#${PR_NUMBER})"
           else 
-            git commit -m "docs(changelog): update changelog (#PR_NUMBER})" 
+            git commit -m "docs(changelog): update changelog (#${PR_NUMBER})" 
           fi 
           git push
           echo "✅ Committed with changes"

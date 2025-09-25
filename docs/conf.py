@@ -2,6 +2,10 @@ from __future__ import annotations
 import os, sys, tomllib
 from datetime import datetime
 from pathlib import Path
+import shutil
+from sphinx.util import logging
+
+logger = logging.getLogger(__name__)
 
 # --- Path setup (src/ layout) ---
 sys.path.insert(0, os.path.abspath(os.path.join("..", "src/mkit")))
@@ -36,3 +40,19 @@ html_theme = "furo"
 
 autodoc_typehints = "description"
 add_module_names = False 
+
+
+def on_build_finished(app, exception):
+    build_static = os.path.join(app.outdir, "_static")
+    if os.path.exists(build_static):
+        for root, dirs, files in os.walk(build_static):
+            for name in files:
+                path = os.path.join(root, name)
+                if os.path.islink(path):
+                    target = os.readlink(path)
+                    os.remove(path)
+                    shutil.copy(target, path)
+                    logger.info(f"Replaced symlink {path} with copy")
+
+def setup(app):
+    app.connect("build-finished", on_build_finished)
