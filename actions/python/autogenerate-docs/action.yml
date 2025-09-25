@@ -32,6 +32,21 @@ runs:
       run: |
         uv run sphinx-apidoc -o ${{ inputs.docs-dir }}/api ${{ inputs.src-dir }} --force
         uv run sphinx-build -b html ${{ inputs.docs-dir }} ${{ inputs.docs-dir }}/_build/html
+      
+    - name: Normalize docs (remove symlinks/hardlinks)
+      shell: bash
+      run: |
+        echo "🔎 Normalizing symlinks/hardlinks in built docs..."
+        find ${{ inputs.docs-dir }}/_build/html -type l -print -exec bash -c '
+          target=$(readlink -f "$0")
+          rm "$0"
+          cp --remove-destination "$target" "$0"
+        ' {} \;
+        echo "✅ Normalization complete"
+    
+    - name: List built docs
+      shell: bash
+      run: ls -lR ${{ inputs.docs-dir }}/_build/html
 
     - name: Upload docs artifact
       uses: actions/upload-artifact@v4
