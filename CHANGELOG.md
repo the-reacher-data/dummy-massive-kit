@@ -1,3 +1,24 @@
+# 🚀 Release 0.6.2 ([#](https://github.com/the-reacher-data/dummy-massive-kit/pull/)) ([`55c84d6`](https://github.com/the-reacher-data/dummy-massive-kit/commit/55c84d63fe6a44aa57932d7a9ebb36ae42cf32f2))
+
+
+## ✨ Features
+### changelog
+- **changelog:** add PR in commit
+
+
+## 🐛 Fixes
+### changelog
+- **changelog:** no url pull
+
+
+
+
+
+
+
+
+
+
 # 🚀 Release 0.6.1 (#20) ([`fc95000`](https://github.com/the-reacher-data/dummy-massive-kit/commit/fc950001036431177b4f9c072a0d0331e994648b))
 
 
