@@ -163,14 +163,13 @@ def main() -> None:
     parser.add_argument("--mode", required=True, choices=["pr", "release"], help="Mode of changelog generation")
     parser.add_argument("--branch", required=True, help="Branch name")
     parser.add_argument("--version", required=False, help="Release version or UNRELEASED")
+    parser.add_argument("--pr-number", required=False, help="PR number of the changelog")
     parser.add_argument("--template", default=DEFAULT_TEMPLATE, help="Path to Jinja2 template")
     parser.add_argument("--output", required=True, help="Output markdown file path")
     parser.add_argument("--repo-url", default=_default_repo_url(), help="Repository URL")
     args = parser.parse_args()
 
     is_unreleased = str(args.version).upper() == "UNRELEASED"
-
-    is_unreleased = str(args.version).upper() == "UNRELEASED" 
     if args.mode == "pr":
         commits = get_commits_pr(args.branch)
         grouped = group_commits(commits)
@@ -179,7 +178,7 @@ def main() -> None:
     else:  # release mode
         squash = get_commit_squash()
         grouped = group_commits(squash["commits"])
-        title = args.version if not is_unreleased else squash["subject"]
+        title = f"{args.version} (#{args.pr_number})"
         md = render(args.template, title, grouped, args.repo_url, squash=squash, is_unreleased=is_unreleased)
 
         changelog = Path("CHANGELOG.md")
