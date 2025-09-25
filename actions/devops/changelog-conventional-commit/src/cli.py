@@ -140,6 +140,7 @@ def render(
     repo_url: str,
     squash: Dict[str, Any] | None,
     is_unreleased: bool,
+    pr_number: int | None
 ) -> str:
     """Render the changelog using Jinja2 template."""
     env = Environment(
@@ -155,6 +156,7 @@ def render(
         repo_url=repo_url,
         squash=squash,
         is_unreleased=is_unreleased,
+        pr_number=pr_number
     )
 
 def main() -> None:
@@ -179,7 +181,8 @@ def main() -> None:
           version, grouped, 
           args.repo_url, 
           squash=None, 
-          is_unreleased=is_unreleased
+          is_unreleased=is_unreleased,
+          pr_number=None
         )
     else:  # release mode
         squash = get_commit_squash()
@@ -191,10 +194,10 @@ def main() -> None:
           grouped, 
           args.repo_url, 
           squash=squash, 
-          is_unreleased=is_unreleased
-          
+          is_unreleased=is_unreleased,
+          pr_number=args.pr_number
         )
-
+        print( f"Change applied to CHANGELOG.md to create the release in a PR({args.pr_number}) for version {version}")
         changelog = Path("CHANGELOG.md")
         previous = changelog.read_text(encoding="utf-8") if changelog.exists() else ""
         changelog.write_text((md + "\n\n" + previous).rstrip() + "\n", encoding="utf-8")
