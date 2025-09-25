@@ -22,6 +22,21 @@ on:
         required: false
         default: "__token__"
         type: string
+      test-dir:
+        description: "Directory containing tests"
+        required: false
+        default: "src/tests"
+        type: string
+      coverage-threshold:
+        description: "Coverage threshold (percentage)"
+        required: false
+        default: "80"
+        type: string
+      src-dir:
+        description: "Source directory"
+        required: false
+        default: "src"
+        type: string
       docs-dir:
         description: "Docs directory to upload"
         required: false
@@ -39,6 +54,9 @@ on:
       github-token:
         description: "GitHub token"
         required: true
+      codecov-token:
+        description: "Codecov token"
+        required: false
 
 jobs:
   detect-branch:
@@ -102,11 +120,37 @@ jobs:
           fi
           echo "✅ Found branch: $branch"
           echo "branch=$branch" >> $GITHUB_OUTPUT
+    
+  test:
+    name: 🧪 Tests & Coverage
+    runs-on: ubuntu-latest
+    needs: [detect-branch]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras --group dev
+
+      - name: Pytest Comment
+        uses: ./actions/python/pytest-comment
+        with:
+          github-token: ${{ secrets.github-token }}
+          test-dir: ${{ inputs.test-dir }}
+          src-dir: ${{ inputs.src-dir }}
+          coverage-threshold: ${{ inputs.coverage-threshold }}
+          codecov-token: ${{ secrets.codecov-token }}
 
   build_package:
     name: 📝 Generate Version
     runs-on: ubuntu-latest
-    needs: [detect-branch]
+    needs: [detect-branch, test]
     outputs:
       version: ${{ steps.version.outputs.version }}
       deploy: ${{ steps.version.outputs.deploy }}
