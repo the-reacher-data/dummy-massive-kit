@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 # --- Path setup (src/ layout) ---
-sys.path.insert(0, os.path.abspath(os.path.join("..", "src")))
+sys.path.insert(0, os.path.abspath(os.path.join("..", "src/mkit")))
 
 # --- Read pyproject.toml ---
 pyproject = Path(__file__).parent.parent / "pyproject.toml"
