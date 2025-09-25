@@ -1,3 +1,20 @@
+# 🚀 Release 0.6.0 (#None) ([`fedeced`](https://github.com/the-reacher-data/dummy-massive-kit/commit/fedecedcc49549787b17dcba691b86c12baf14ee))
+
+
+## ✨ Features
+### changelog
+- **changelog:** add PR in title
+
+
+
+
+
+
+
+
+
+
+
 # 🚀 Release 0.5.1 (commit [`9f18350`](https://github.com/the-reacher-data/dummy-massive-kit/commit/9f1835020c24768a548caa03d14f99a5fca38a0b))
 
 
