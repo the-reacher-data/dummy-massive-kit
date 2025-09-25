@@ -192,32 +192,32 @@ jobs:
           pypi-secret: ${{ secrets.pypi-secret }}
 
       - name: Commit version bump and changelog
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
         run: |
-        
+          VERSION=${{ steps.version.outputs.version }}
+          PR_NUMBER=${{ needs.detect-branch.outputs.pr-number }}
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add pyproject.toml CHANGELOG.md || true
 
-          if git diff --cached --name-only | grep -q "pyproject.toml"; then
-            commit_msg="chore(release): ${VERSION} (#${{ needs.detect-branch.outputs.pr-number }})"
-          else
-            commit_msg="docs(changelog): update changelog (#${{ needs.detect-branch.outputs.pr-number }})"
+          if [[ "$GITHUB_RUN_ATTEMPT" -gt 1 ]]; then
+              echo "🔄 This is a re-run (attempt $GITHUB_RUN_ATTEMPT)"
+              exit 0
           fi
-
-          if git log origin/main --grep="$(echo "$commit_msg" | sed 's/[].[^$*/]/\\&/g')" -q; then
-            echo "⚠️ Commit is main, maybe a rerun. exiting..."
-            exit 0
-          fi
-          git commit -m "$commit_msg"
+          if [[ "$VERSION" != "UNRELEASED" ]]; then
+            git commit -m "chore(release): ${VERSION} (#PR_NUMBER})"
+          else 
+            git commit -m "docs(changelog): update changelog (#PR_NUMBER})" 
+          fi 
           git push
           echo "✅ Committed with changes"
 
   publish_docs:
     name: 📚 Publish Docs
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.docs.outputs.page-url }}
     needs: [build_package]
     if: ${{ needs.build_package.outputs.deploy == 'true' && github.event.repository.private == false }}
     steps:
@@ -230,6 +230,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --all-extras --group dev
       - name: Upload Docs
+        id: docs
         uses: ./actions/python/autogenerate-docs
         with:
           docs-dir: ${{ inputs.docs-dir }}

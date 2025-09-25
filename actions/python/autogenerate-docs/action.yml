@@ -13,6 +13,10 @@ inputs:
   mode:
     description: "Mode: pr or release"
     required: true
+outputs:
+  page-url:
+    description: "URL of the deployed GitHub Pages site"
+    value: ${{ steps.deployment.outputs.page_url }}
 
 runs:
   using: "composite"
@@ -37,6 +41,7 @@ runs:
 
     - name: Deploy to GitHub Pages
       if: ${{ inputs.mode == 'release' }}
+      id: deployment
       uses: actions/deploy-pages@v4
       with:
         artifact_name: docs-html
