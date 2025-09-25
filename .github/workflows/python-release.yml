@@ -46,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.extract.outputs.branch }}
+      pr-number: ${{ steps.extract-pr-number.outputs.pr-number }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -132,6 +133,7 @@ jobs:
           mode: "release"
           branch: ${{ needs.detect-branch.outputs.branch }}
           version: ${{ steps.version.outputs.version }}
+          pr-number: ${{ needs.detect-branch.outputs.pr-number }}
           output: version.md
       
       - name: 🚀 Publish Package
