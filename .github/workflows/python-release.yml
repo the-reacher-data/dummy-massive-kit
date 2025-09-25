@@ -1,5 +1,8 @@
 name: 🚀 Release Workflow
 
+concurrency:
+    group: release-${{ github.ref }}
+    cancel-in-progress: false
 on:
   workflow_call:
     inputs:
@@ -192,23 +195,28 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+        
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
 
           git add pyproject.toml CHANGELOG.md || true
 
           if git diff --cached --quiet; then
-            echo "⚠️ Nothing to commit"
+            echo "⚠️ Nothing new to commit (likely rerun)"
             exit 0
           fi
 
           if [[ "$VERSION" != "UNRELEASED" ]]; then
-            git commit -m "chore(release): ${VERSION} (#${{ needs.detect-branch.outputs.pr-number }})"
+            git commit -m "chore(release): ${VERSION} (#${{ github.event.pull_request.number }})"
           else
-            git commit -m "docs(changelog): update changelog (#${{ needs.detect-branch.outputs.pr-number }})"
+            git commit -m "docs(changelog): update changelog (#${{ github.event.pull_request.number }})"
           fi
-          git push
-          echo "✅ Committed with changes"
+      
+          git push origin HEAD:main
 
   publish_docs:
     name: 📚 Publish Docs
