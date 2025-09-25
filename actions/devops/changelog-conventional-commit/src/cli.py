@@ -197,7 +197,6 @@ def main() -> None:
           is_unreleased=is_unreleased,
           pr_number=args.pr_number
         )
-        print( f"Change applied to CHANGELOG.md to create the release in a PR({args.pr_number}) for version {version}")
         changelog = Path("CHANGELOG.md")
         previous = changelog.read_text(encoding="utf-8") if changelog.exists() else ""
         changelog.write_text((md + "\n\n" + previous).rstrip() + "\n", encoding="utf-8")
