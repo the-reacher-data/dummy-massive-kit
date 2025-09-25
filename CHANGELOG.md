@@ -1,3 +1,20 @@
+# 🚀 Release 0.7.1 ([#24](https://github.com/the-reacher-data/dummy-massive-kit/pull/24)) ([`0685623`](https://github.com/the-reacher-data/dummy-massive-kit/commit/0685623d5dac8103b5ce72768d0e836dbc200040))
+
+
+## ✨ Features
+### changelog
+- **changelog:** more logger
+
+
+
+
+
+
+
+
+
+
+
 # 🚀 Release 0.7.0 ([#](https://github.com/the-reacher-data/dummy-massive-kit/pull/)) ([`5b32084`](https://github.com/the-reacher-data/dummy-massive-kit/commit/5b32084d5ac11c398221f5377fef15fca40c48da))
 
 
