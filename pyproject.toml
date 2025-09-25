@@ -7,16 +7,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dummy_massivekit"
-version = "0.9.4"
+version = "0.9.5"
 description = "MassiveKit: Declarative framework for APIs, ETL and Microservices with Clean Code and SOLID principles"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
     { name = "MassiveDataScope" },
 ]
-
-license = { file = "LICENSE" }
-
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -38,6 +35,9 @@ dependencies = [
     "typing-extensions>=4.9",
     "anyio>=4.4",
 ]
+
+[project.license]
+file = "LICENSE"
 
 [project.optional-dependencies]
 api = [
